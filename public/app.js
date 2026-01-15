@@ -187,6 +187,18 @@ class ClaudePod {
   }
 
   async init() {
+    // Handle PWA shortcut actions
+    const params = new URLSearchParams(window.location.search);
+    const action = params.get('action');
+
+    if (action) {
+      // Clear the URL parameter
+      window.history.replaceState({}, '', '/');
+
+      // Queue action for after init
+      this.pendingAction = action;
+    }
+
     this.setupTerminal();
     this.setupEventListeners();
     this.setupModal();
@@ -1505,6 +1517,18 @@ class ClaudePod {
       this.terminal.focus();
       this.sendResize();
       this.startPing();
+
+      // Handle pending PWA action
+      if (this.pendingAction) {
+        setTimeout(() => {
+          if (this.pendingAction === 'new') {
+            this.showDirModal();
+          } else if (this.pendingAction === 'palette') {
+            this.showPalette();
+          }
+          this.pendingAction = null;
+        }, 500);
+      }
     };
 
     this.socket.onmessage = (event) => {
