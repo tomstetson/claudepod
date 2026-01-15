@@ -1,4 +1,5 @@
 {
+  "id": "claudepod",
   "name": "ClaudePod",
   "short_name": "ClaudePod",
   "description": "Remote terminal viewer for Claude Code sessions",
@@ -21,5 +22,21 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["developer", "utilities"]
+  "categories": ["developer", "utilities"],
+  "shortcuts": [
+    {
+      "name": "New Session",
+      "short_name": "New",
+      "description": "Create a new Claude session",
+      "url": "/?action=new",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Command Palette",
+      "short_name": "Commands",
+      "description": "Open command palette",
+      "url": "/?action=palette",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
 }
