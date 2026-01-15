@@ -1,5 +1,16 @@
 # Recent Changes
 
+## 2026-01-15 — v3 Phase 6: Optimistic UI & Polish
+**Files:** public/app.js
+**Why:** Improve perceived performance and UX polish
+**Changes:**
+- Optimistic UI for label changes, notification toggles, session kills
+- Instant feedback with automatic revert on API failure
+- Dynamic command palette shows context-aware mute/unmute
+**Commits:**
+- `feat: add optimistic UI updates for instant feedback`
+- `feat: dynamic notification command shows mute/unmute based on state`
+
 ## 2026-01-15 — v3 Phase 5: Notification Preferences
 **Files:** lib/sessions.js, server.js, public/app.js, test/server.test.js
 **Why:** Allow users to mute notifications for specific sessions

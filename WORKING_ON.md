@@ -21,15 +21,14 @@ Complete v3 implementation - the complete mobile Claude Code experience
 - [x] Terminal search via command palette
 - [x] Per-session notification preferences
 - [x] Notification status indicator in session dropdown
+- [x] Optimistic UI updates (instant feedback, revert on error)
+- [x] Dynamic command palette (mute/unmute shows current state)
 - [x] All 39 tests passing
 
 ## Files Modified
-- `server.js` — Added notifications toggle API endpoint
-- `lib/sessions.js` — Added notification preference functions
-- `public/app.js` — Notifications toggle, muted indicator
-- `test/server.test.js` — Added notification API tests
+- `public/app.js` — Optimistic UI, dynamic palette commands
 
 ## Next Steps
 1. Output virtualization for very large sessions
-2. Optimistic UI updates
-3. Enhanced notification patterns
+2. Enhanced notification patterns
+3. Keyboard shortcut help overlay

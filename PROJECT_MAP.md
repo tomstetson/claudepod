@@ -79,3 +79,5 @@ ClaudePod/
 - [✅] Gesture navigation - swipe between sessions (v3)
 - [✅] Terminal search (v3)
 - [✅] Per-session notification preferences (v3)
+- [✅] Optimistic UI updates (v3)
+- [✅] Dynamic context-aware command palette (v3)
