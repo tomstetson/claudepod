@@ -156,6 +156,7 @@ const CLAUDE_COMMANDS = [
   { cmd: '__theme__', desc: 'Change terminal theme', category: 'View', display: '🎨 Theme' },
   { cmd: '__copy__', desc: 'Copy selection to clipboard', category: 'Edit', display: '📋 Copy' },
   { cmd: '__export__', desc: 'Export session to file', category: 'Session', display: '💾 Export' },
+  { cmd: '__import__', desc: 'Import text from file', category: 'Session', display: '📂 Import' },
 ];
 
 class ClaudePod {
@@ -406,6 +407,12 @@ class ClaudePod {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
         this.exportSession();
+      }
+
+      // Ctrl/Cmd + O: Import file
+      if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+        e.preventDefault();
+        this.importFile();
       }
     });
   }
@@ -754,6 +761,11 @@ class ClaudePod {
       return;
     }
 
+    if (item.cmd === '__import__') {
+      this.importFile();
+      return;
+    }
+
     // For control characters, send directly
     if (item.cmd === '\x03' || item.cmd === '\x1b') {
       this.sendInput(item.cmd);
@@ -874,6 +886,7 @@ class ClaudePod {
       ['⌘/Ctrl + T', 'Cycle theme'],
       ['⌘/Ctrl + C', 'Copy selection'],
       ['⌘/Ctrl + S', 'Export session'],
+      ['⌘/Ctrl + O', 'Import file'],
       ['⌘/Ctrl + ⇧ + N', 'New session'],
       ['⌘/Ctrl + ⇧ + K', 'Kill session'],
       ['Swipe ←/→', 'Switch sessions'],
@@ -1006,6 +1019,46 @@ class ClaudePod {
       console.error('Export failed:', err);
       this.showStatus('Export failed', 'error');
     }
+  }
+
+  // Import text from file
+  importFile() {
+    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+      this.showStatus('Not connected', 'error');
+      return;
+    }
+
+    // Create hidden file input
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.txt,.md,.log,.sh,.js,.py,.json,.yaml,.yml,.toml,.env,.conf,.cfg';
+
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      try {
+        const content = await file.text();
+
+        // Confirm before sending large files
+        if (content.length > 5000) {
+          const lines = content.split('\n').length;
+          if (!confirm(`Import ${lines} lines (${content.length} chars)? Large pastes may be slow.`)) {
+            return;
+          }
+        }
+
+        // Send content to terminal
+        this.sendInput(content);
+        this.haptic('success');
+        this.showStatus(`Imported ${file.name}`, 'success');
+      } catch (err) {
+        console.error('Import failed:', err);
+        this.showStatus('Import failed', 'error');
+      }
+    };
+
+    input.click();
   }
 
   // Terminal search
