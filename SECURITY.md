@@ -30,12 +30,13 @@ ClaudePod implements the following security measures:
 
 ## Automated Security Scanning
 
-This repository uses:
+This repository uses free, built-in GitHub security tools:
 
-- **Snyk** - Dependency vulnerability scanning
-- **GitGuardian** - Secret detection
-- **CodeQL** - Static code analysis
+- **CodeQL** - Static code analysis (GitHub native)
+- **Dependabot** - Automatic dependency updates & security alerts
+- **Secret Scanning** - Detects accidentally committed secrets (GitHub native)
 - **npm audit** - Package vulnerability checks
+- **OSSF Scorecard** - Security health metrics
 
 ## Network Security
 
