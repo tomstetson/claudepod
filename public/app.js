@@ -154,6 +154,7 @@ const CLAUDE_COMMANDS = [
   { cmd: '__scroll_bottom__', desc: 'Scroll to bottom', category: 'View', display: '↓ Bottom' },
   { cmd: '__shortcuts__', desc: 'Show keyboard shortcuts', category: 'Help', display: '⌨ Shortcuts' },
   { cmd: '__theme__', desc: 'Change terminal theme', category: 'View', display: '🎨 Theme' },
+  { cmd: '__copy__', desc: 'Copy selection to clipboard', category: 'Edit', display: '📋 Copy' },
 ];
 
 class ClaudePod {
@@ -736,6 +737,11 @@ class ClaudePod {
       return;
     }
 
+    if (item.cmd === '__copy__') {
+      this.copySelection();
+      return;
+    }
+
     // For control characters, send directly
     if (item.cmd === '\x03' || item.cmd === '\x1b') {
       this.sendInput(item.cmd);
@@ -854,6 +860,7 @@ class ClaudePod {
       ['⌘/Ctrl + K', 'Clear terminal'],
       ['⌘/Ctrl + F', 'Search terminal'],
       ['⌘/Ctrl + T', 'Cycle theme'],
+      ['⌘/Ctrl + C', 'Copy selection'],
       ['⌘/Ctrl + ⇧ + N', 'New session'],
       ['⌘/Ctrl + ⇧ + K', 'Kill session'],
       ['Swipe ←/→', 'Switch sessions'],
@@ -923,6 +930,27 @@ class ClaudePod {
     const currentIndex = themeNames.indexOf(this.currentTheme);
     const nextIndex = (currentIndex + 1) % themeNames.length;
     this.setTheme(themeNames[nextIndex]);
+  }
+
+  // Copy selection to clipboard
+  async copySelection() {
+    const selection = this.terminal.getSelection();
+
+    if (!selection) {
+      this.showStatus('No text selected', 'info');
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(selection);
+      this.haptic('success');
+      this.showStatus('Copied to clipboard', 'success');
+      // Clear selection after copy
+      this.terminal.clearSelection();
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      this.showStatus('Copy failed', 'error');
+    }
   }
 
   // Terminal search
