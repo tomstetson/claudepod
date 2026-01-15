@@ -115,6 +115,63 @@ app.get('/api/directories', (req, res) => {
   }
 });
 
+// API: Create directory
+app.post('/api/directories', (req, res) => {
+  try {
+    const { path: relativePath, name } = req.body || {};
+
+    if (!name) {
+      return res.status(400).json({ error: 'Folder name is required' });
+    }
+
+    // Validate folder name - only allow safe characters
+    if (!/^[a-zA-Z0-9_-][a-zA-Z0-9_\-. ]*$/.test(name)) {
+      return res.status(400).json({ error: 'Invalid folder name. Use letters, numbers, spaces, dashes, underscores, and dots.' });
+    }
+
+    // Sanitize parent path
+    const cleanPath = (relativePath || '')
+      .split(/[/\\]+/)
+      .filter(segment => segment && segment !== '.' && segment !== '..')
+      .join('/');
+
+    const parentPath = path.resolve(PROJECTS_DIR, cleanPath);
+
+    // Verify parent is within PROJECTS_DIR
+    if (!parentPath.startsWith(path.resolve(PROJECTS_DIR))) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Check parent exists
+    if (!fs.existsSync(parentPath)) {
+      return res.status(404).json({ error: 'Parent directory not found' });
+    }
+
+    const newFolderPath = path.join(parentPath, name);
+
+    // Check new folder path is still within PROJECTS_DIR
+    if (!newFolderPath.startsWith(path.resolve(PROJECTS_DIR))) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Check if folder already exists
+    if (fs.existsSync(newFolderPath)) {
+      return res.status(409).json({ error: 'Folder already exists' });
+    }
+
+    // Create the directory
+    fs.mkdirSync(newFolderPath, { recursive: true });
+
+    res.json({
+      success: true,
+      path: cleanPath ? `${cleanPath}/${name}` : name,
+      fullPath: newFolderPath
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // API: Kill session
 app.delete('/api/sessions/:name', (req, res) => {
   try {

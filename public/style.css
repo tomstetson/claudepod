@@ -453,6 +453,27 @@ body {
   color: var(--text-secondary);
 }
 
+.dir-item-create {
+  background: var(--bg-elevated);
+  border-bottom: 2px solid var(--border);
+}
+
+.dir-item-create:hover {
+  background: var(--accent-glow);
+}
+
+.dir-item-create .dir-item-icon {
+  color: var(--accent);
+  font-size: 18px;
+  font-weight: 700;
+  opacity: 1;
+}
+
+.dir-item-create .dir-item-name {
+  color: var(--accent);
+  font-weight: 600;
+}
+
 .dir-loading {
   padding: 24px;
   text-align: center;

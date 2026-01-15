@@ -128,5 +128,36 @@ describe('Server Integration', () => {
         );
       });
     });
+
+    describe('POST /api/directories', () => {
+      it('should require folder name', async () => {
+        const res = await request('/api/directories', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: { path: '' }
+        });
+        assert.strictEqual(res.status, 400);
+        assert.ok(res.body.error.includes('required'));
+      });
+
+      it('should reject invalid folder names', async () => {
+        const res = await request('/api/directories', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: { path: '', name: '../../../etc' }
+        });
+        assert.strictEqual(res.status, 400);
+        assert.ok(res.body.error.includes('Invalid'));
+      });
+
+      it('should reject path traversal in name', async () => {
+        const res = await request('/api/directories', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: { path: '', name: '; rm -rf /' }
+        });
+        assert.strictEqual(res.status, 400);
+      });
+    });
   });
 });

@@ -247,6 +247,12 @@ class ClaudePod {
       const item = e.target.closest('.dir-item');
       if (!item) return;
 
+      const action = item.dataset.action;
+      if (action === 'create-folder') {
+        this.createFolder();
+        return;
+      }
+
       const path = item.dataset.path;
       if (path === '..') {
         this.loadDirectories(this.currentDirPath.split('/').slice(0, -1).join('/'));
@@ -304,6 +310,14 @@ class ClaudePod {
 
     let html = '';
 
+    // Create new folder button
+    html += `
+      <div class="dir-item dir-item-create" data-action="create-folder">
+        <span class="dir-item-icon">+</span>
+        <span class="dir-item-name">New Folder</span>
+      </div>
+    `;
+
     // Parent directory link
     if (data.parent !== null) {
       html += `
@@ -329,6 +343,43 @@ class ClaudePod {
     }
 
     dirList.innerHTML = html;
+  }
+
+  async createFolder() {
+    const name = prompt('Enter folder name:');
+    if (!name || !name.trim()) return;
+
+    const cleanName = name.trim();
+
+    // Basic validation
+    if (!/^[a-zA-Z0-9_-][a-zA-Z0-9_\-. ]*$/.test(cleanName)) {
+      this.showStatus('Invalid folder name', 'error');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/directories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          path: this.currentDirPath,
+          name: cleanName
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create folder');
+      }
+
+      this.showStatus(`Created ${cleanName}`, 'success');
+      // Navigate to the new folder
+      this.loadDirectories(data.path);
+    } catch (err) {
+      console.error('Failed to create folder:', err);
+      this.showStatus(err.message, 'error');
+    }
   }
 
   async createSessionInDir() {
