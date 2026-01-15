@@ -1,6 +1,6 @@
 // ClaudePod Service Worker v2
 
-const CACHE_VERSION = 2;
+const CACHE_VERSION = 3;
 const CACHE_NAME = `claudepod-v${CACHE_VERSION}`;
 const STATIC_ASSETS = [
   '/',

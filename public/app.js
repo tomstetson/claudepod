@@ -275,7 +275,15 @@ class ClaudePod {
 
     try {
       const response = await fetch(`/api/directories?path=${encodeURIComponent(path)}`);
-      const data = await response.json();
+      const text = await response.text();
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseErr) {
+        console.error('Failed to parse response:', text.substring(0, 200));
+        throw new Error('Invalid response from server');
+      }
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to load directories');
@@ -286,6 +294,7 @@ class ClaudePod {
 
       this.renderDirectories(data);
     } catch (err) {
+      console.error('loadDirectories error:', err);
       dirList.innerHTML = `<div class="dir-empty">Error: ${err.message}</div>`;
     }
   }
