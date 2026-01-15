@@ -5,9 +5,8 @@ A mobile-first PWA for remotely monitoring and interacting with [Claude Code](ht
 ![ClaudePod](https://img.shields.io/badge/PWA-Ready-blue) ![Node](https://img.shields.io/badge/Node-18%2B-green) ![License](https://img.shields.io/badge/License-MIT-yellow)
 
 <p align="center">
-  <img src="docs/screenshots/03-mobile-session.png" width="280" alt="ClaudePod running Claude Code">
-  <img src="docs/screenshots/04-mobile-command-palette.png" width="280" alt="Command Palette">
-  <img src="docs/screenshots/05-mobile-dracula-theme.png" width="280" alt="Dracula Theme">
+  <img src="docs/screenshots/03-terminal.png" width="300" alt="ClaudePod running Claude Code">
+  <img src="docs/screenshots/04-command-palette.png" width="300" alt="Command Palette">
 </p>
 
 ## Why ClaudePod?
@@ -58,8 +57,8 @@ npm start
 ### Mobile-First Design
 
 <p align="center">
-  <img src="docs/screenshots/01-mobile-empty.png" width="280" alt="Empty State">
-  <img src="docs/screenshots/02-mobile-new-session.png" width="280" alt="New Session Dialog">
+  <img src="docs/screenshots/01-home.png" width="300" alt="Home Screen">
+  <img src="docs/screenshots/02-new-session.png" width="300" alt="New Session Dialog">
 </p>
 
 - **44px touch targets** following Apple Human Interface Guidelines
