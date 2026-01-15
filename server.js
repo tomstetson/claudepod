@@ -361,6 +361,11 @@ wss.on('connection', (ws, req) => {
             ptyProcess.resize(msg.cols, msg.rows);
           }
           break;
+
+        case 'ping':
+          // Echo back for latency measurement
+          ws.send(JSON.stringify({ type: 'pong', timestamp: msg.timestamp }));
+          break;
       }
     } catch (err) {
       console.error('Invalid message:', err.message);

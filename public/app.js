@@ -42,6 +42,8 @@ class ClaudePod {
     this.deferredPrompt = null;
     this.selectedPaletteIndex = 0;
     this.filteredCommands = [];
+    this.pingInterval = null;
+    this.latency = null;
 
     this.init();
   }
@@ -1140,6 +1142,7 @@ class ClaudePod {
       this.reconnectAttempts = 0;
       this.terminal.focus();
       this.sendResize();
+      this.startPing();
     };
 
     this.socket.onmessage = (event) => {
@@ -1160,6 +1163,10 @@ class ClaudePod {
             this.showStatus(msg.message || 'Connection error', 'error');
             this.terminal.write(`\r\n\x1b[31mError: ${msg.message}\x1b[0m\r\n`);
             break;
+
+          case 'pong':
+            this.handlePong(msg.timestamp);
+            break;
         }
       } catch (err) {
         console.error('Invalid message:', err);
@@ -1169,6 +1176,7 @@ class ClaudePod {
     this.socket.onclose = (event) => {
       console.log(`Disconnected from session: ${sessionName}`, event.code, event.reason);
       this.setConnectionStatus('disconnected');
+      this.stopPing();
 
       if (event.code !== 1000 && event.code !== 4001 && event.code !== 4002) {
         // Abnormal close, try to reconnect
@@ -1249,7 +1257,43 @@ class ClaudePod {
   setConnectionStatus(status) {
     const indicator = document.getElementById('connection-status');
     indicator.className = 'connection-status ' + status;
-    indicator.title = status.charAt(0).toUpperCase() + status.slice(1);
+
+    // Build title with latency if available
+    let title = status.charAt(0).toUpperCase() + status.slice(1);
+    if (status === 'connected' && this.latency !== null) {
+      title += ` (${this.latency}ms)`;
+      // Add quality class based on latency
+      if (this.latency < 100) {
+        indicator.classList.add('quality-good');
+      } else if (this.latency < 300) {
+        indicator.classList.add('quality-fair');
+      } else {
+        indicator.classList.add('quality-poor');
+      }
+    }
+    indicator.title = title;
+  }
+
+  startPing() {
+    this.stopPing(); // Clear any existing
+    this.pingInterval = setInterval(() => {
+      if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+        this.socket.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }));
+      }
+    }, 5000); // Ping every 5 seconds
+  }
+
+  stopPing() {
+    if (this.pingInterval) {
+      clearInterval(this.pingInterval);
+      this.pingInterval = null;
+    }
+    this.latency = null;
+  }
+
+  handlePong(timestamp) {
+    this.latency = Date.now() - timestamp;
+    this.setConnectionStatus('connected');
   }
 
   setButtonLoading(btn, loading) {

@@ -811,6 +811,22 @@ body {
   50% { opacity: 0.4; }
 }
 
+/* Connection quality indicators */
+.connection-status.quality-good .status-dot {
+  background: var(--success);
+  box-shadow: 0 0 6px var(--success);
+}
+
+.connection-status.quality-fair .status-dot {
+  background: var(--warning);
+  box-shadow: 0 0 6px var(--warning);
+}
+
+.connection-status.quality-poor .status-dot {
+  background: var(--error);
+  box-shadow: 0 0 6px var(--error);
+}
+
 /* ============ LOADING STATES ============ */
 .btn-loading {
   position: relative;
