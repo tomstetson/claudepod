@@ -383,6 +383,28 @@ body {
   transform: translateY(-1px);
 }
 
+/* ============ KEYBOARD VISIBLE ADJUSTMENTS ============ */
+body.keyboard-visible .quick-actions {
+  display: none;
+}
+
+body.keyboard-visible .terminal-container {
+  /* Reduce terminal height when keyboard is open */
+  flex: 1;
+  min-height: 100px;
+}
+
+body.keyboard-visible .input-bar {
+  /* Ensure input bar stays above keyboard */
+  position: relative;
+  z-index: 200;
+}
+
+body.keyboard-visible .scroll-controls {
+  /* Hide scroll controls when keyboard open */
+  display: none;
+}
+
 /* ============ QUICK ACTIONS ============ */
 .quick-actions {
   display: flex;
