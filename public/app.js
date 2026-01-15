@@ -516,12 +516,14 @@ class ClaudePod {
   }
 
   showDirModal() {
+    this.lockScroll();
     const modal = document.getElementById('dir-modal');
     modal.classList.add('visible');
     this.loadDirectories('');
   }
 
   hideDirModal() {
+    this.unlockScroll();
     const modal = document.getElementById('dir-modal');
     modal.classList.remove('visible');
   }
@@ -620,6 +622,7 @@ class ClaudePod {
   }
 
   showPalette() {
+    this.lockScroll();
     const modal = document.getElementById('palette-modal');
     const searchInput = document.getElementById('palette-search');
 
@@ -630,6 +633,7 @@ class ClaudePod {
   }
 
   hidePalette() {
+    this.unlockScroll();
     const modal = document.getElementById('palette-modal');
     modal.classList.remove('visible');
     this.terminal.focus();
@@ -845,6 +849,19 @@ class ClaudePod {
     };
 
     navigator.vibrate(patterns[type] || patterns.light);
+  }
+
+  // Scroll lock for modals (iOS fix)
+  lockScroll() {
+    this.scrollPosition = window.scrollY;
+    document.body.classList.add('scroll-locked');
+    document.body.style.top = `-${this.scrollPosition}px`;
+  }
+
+  unlockScroll() {
+    document.body.classList.remove('scroll-locked');
+    document.body.style.top = '';
+    window.scrollTo(0, this.scrollPosition || 0);
   }
 
   // Font size control
@@ -1261,6 +1278,7 @@ class ClaudePod {
   }
 
   showKillModal() {
+    this.lockScroll();
     if (!this.currentSession) {
       this.showStatus('No active session', 'warning');
       return;
@@ -1273,6 +1291,7 @@ class ClaudePod {
   }
 
   hideKillModal() {
+    this.unlockScroll();
     const modal = document.getElementById('kill-modal');
     modal.classList.remove('visible');
   }
