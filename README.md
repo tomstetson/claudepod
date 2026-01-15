@@ -20,6 +20,56 @@ Claude Code runs long tasks that often pause for confirmation. ClaudePod lets yo
 
 ---
 
+## Use Cases
+
+### 🚶 Walk Away from Long Tasks
+
+You kick off a big refactor: *"Refactor the authentication system to use JWT tokens."* Claude starts working, but you need to grab coffee or take a call.
+
+**Without ClaudePod:** You stay glued to your desk, waiting for Claude to ask "Should I proceed with modifying auth.js?"
+
+**With ClaudePod:** Walk away. Your phone buzzes when Claude needs input. Tap **Y** while waiting in line for coffee. Come back to completed work.
+
+### 🍳 Morning Code Reviews
+
+You ask Claude to review overnight CI failures before your morning standup. While making breakfast:
+
+1. Phone notification: *"Claude needs input"*
+2. Open ClaudePod, see Claude asking: *"Found 3 failing tests. Want me to fix them?"*
+3. Tap **Y**
+4. Continue making eggs
+5. By standup, fixes are ready for review
+
+### 🏃 Parallel Project Management
+
+You're running Claude on three projects simultaneously:
+- `claude1`: Building a new API endpoint
+- `claude2`: Writing documentation
+- `claude3`: Debugging a production issue
+
+**With ClaudePod:** Swipe between sessions on your phone. See which one needs attention. Respond to the urgent production debug while the others continue autonomously.
+
+### 🛋️ Couch Coding
+
+It's Sunday. You're on the couch but want to ship a small feature. Instead of opening your laptop:
+
+1. Open ClaudePod on your phone
+2. Tap **+ New**, select your project
+3. Type: *"Add a dark mode toggle to settings"*
+4. Claude builds it while you watch TV
+5. Tap **Y** to approve file changes
+6. Feature shipped from your couch
+
+### 💻 Desktop: Second Monitor Dashboard
+
+Even at your desk, ClaudePod is useful on a second monitor:
+- **Quick action buttons** - Faster than typing "y" + Enter in terminal
+- **Visual session management** - See all running Claude sessions at a glance
+- **Notification muting** - Silence noisy sessions without stopping them
+- **Session export** - Save interesting Claude conversations for later
+
+---
+
 ## Quick Start
 
 ### Prerequisites
