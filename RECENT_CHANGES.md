@@ -1,16 +1,20 @@
 # Recent Changes
 
-## 2026-01-15 — v3 Phase 10: Export & Clipboard
+## 2026-01-15 — v3 Phase 10: Import/Export & Clipboard
 **Files:** public/app.js
-**Why:** Allow users to copy and export session content
+**Why:** Allow users to copy, export, and import session content
 **Changes:**
 - Copy selection to clipboard via command palette or Cmd+C
 - Session export to .txt file via palette or Cmd+S
+- File import to terminal via palette or Cmd+O
+- Support for .txt, .md, .log, .sh, .js, .py, .json, .yaml files
+- Confirmation dialog for large file imports (>5000 chars)
 - Full terminal buffer export with timestamp in filename
 - Haptic feedback for successful operations
 **Commits:**
 - `feat: add copy selection to clipboard command`
 - `feat: add session export to file feature`
+- `feat: add file import to terminal feature`
 
 ## 2026-01-15 — v3 Phase 9: Terminal Themes
 **Files:** public/app.js

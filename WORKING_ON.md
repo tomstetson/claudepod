@@ -31,12 +31,13 @@ Complete v3 implementation - the complete mobile Claude Code experience
 - [x] Multiple terminal themes (5 themes: Default, Dracula, Nord, Solarized, Monokai)
 - [x] Copy selection to clipboard (Cmd+C or palette)
 - [x] Session export to file (Cmd+S or palette)
+- [x] File import to terminal (Cmd+O or palette)
 - [x] All 42 tests passing
 
 ## Files Modified
-- `public/app.js` — Copy selection, session export features
+- `public/app.js` — Copy, export, import features
 
 ## Next Steps
 1. Output virtualization for very large sessions
-2. Session import from file
-3. Multi-session export/backup
+2. Multi-session backup/restore
+3. Session history/snapshots

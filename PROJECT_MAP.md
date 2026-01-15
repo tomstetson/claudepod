@@ -88,3 +88,4 @@ ClaudePod/
 - [✅] Multiple terminal themes (v3)
 - [✅] Copy selection to clipboard (v3)
 - [✅] Session export to file (v3)
+- [✅] File import to terminal (v3)
