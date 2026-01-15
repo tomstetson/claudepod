@@ -242,6 +242,22 @@ class ClaudePod {
 
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
+      // Global shortcuts (work even in inputs)
+      // Ctrl/Cmd + P: Command palette
+      if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+        e.preventDefault();
+        this.showPalette();
+        return;
+      }
+
+      // Ctrl/Cmd + K: Clear terminal
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'k') {
+        e.preventDefault();
+        this.terminal.clear();
+        this.showStatus('Terminal cleared', 'info');
+        return;
+      }
+
       const activeEl = document.activeElement;
       const isInputFocused = activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT';
 
@@ -257,6 +273,12 @@ class ClaudePod {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'K') {
         e.preventDefault();
         this.showKillModal();
+      }
+
+      // Ctrl/Cmd + F: Search terminal
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        this.showSearchPrompt();
       }
     });
   }
