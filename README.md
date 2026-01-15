@@ -301,6 +301,17 @@ This is normal behavior - the app auto-reconnects. If persistent:
 
 ---
 
+## Roadmap
+
+See [ROADMAP.md](ROADMAP.md) for planned features including:
+- 🎤 Voice input
+- 🔔 Rich notifications with action buttons
+- ⚡ Auto-approve patterns
+- ⌚ Apple Watch companion
+- 📱 iPad layout
+
+---
+
 ## License
 
 MIT
