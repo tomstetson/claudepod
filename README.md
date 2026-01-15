@@ -1,6 +1,6 @@
 # ClaudePod
 
-A mobile-first PWA for remotely monitoring and interacting with [Claude Code](https://docs.anthropic.com/en/docs/claude-code) sessions. Access your Claude sessions from your phone while away from your desk.
+A mobile-first PWA for remotely monitoring and interacting with [Claude Code](https://github.com/anthropics/claude-code) sessions. Access your Claude sessions from your phone while away from your desk.
 
 ![ClaudePod](https://img.shields.io/badge/PWA-Ready-blue) ![Node](https://img.shields.io/badge/Node-18%2B-green) ![License](https://img.shields.io/badge/License-MIT-yellow)
 
