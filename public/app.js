@@ -393,6 +393,12 @@ class ClaudePod {
         e.preventDefault();
         this.showSearchPrompt();
       }
+
+      // Ctrl/Cmd + T: Cycle theme
+      if ((e.ctrlKey || e.metaKey) && e.key === 't') {
+        e.preventDefault();
+        this.cycleTheme();
+      }
     });
   }
 
@@ -847,6 +853,7 @@ class ClaudePod {
       ['⌘/Ctrl + P', 'Command palette'],
       ['⌘/Ctrl + K', 'Clear terminal'],
       ['⌘/Ctrl + F', 'Search terminal'],
+      ['⌘/Ctrl + T', 'Cycle theme'],
       ['⌘/Ctrl + ⇧ + N', 'New session'],
       ['⌘/Ctrl + ⇧ + K', 'Kill session'],
       ['Swipe ←/→', 'Switch sessions'],
@@ -909,6 +916,13 @@ class ClaudePod {
 
     this.haptic('success');
     this.showStatus(`Theme: ${theme.name}`, 'success');
+  }
+
+  cycleTheme() {
+    const themeNames = Object.keys(TERMINAL_THEMES);
+    const currentIndex = themeNames.indexOf(this.currentTheme);
+    const nextIndex = (currentIndex + 1) % themeNames.length;
+    this.setTheme(themeNames[nextIndex]);
   }
 
   // Terminal search
