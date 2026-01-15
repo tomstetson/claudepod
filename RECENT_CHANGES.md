@@ -1,5 +1,25 @@
 # Recent Changes
 
+## 2026-01-15 — v3 Phase 11: iPhone/Mobile Enhancements
+**Files:** public/app.js, public/style.css, public/index.html, public/manifest.json, public/sw.js
+**Why:** Critical mobile UX fixes for iPhone/iOS Safari
+**Changes:**
+- Virtual keyboard detection using visualViewport API
+- Layout adjustments when keyboard is open (hide quick actions, scroll input into view)
+- Touch targets increased to 44px minimum (Apple HIG compliance)
+- Modal scroll lock prevents background scrolling on iOS
+- iOS input attributes (autocapitalize=none, enterkeyhint)
+- PWA manifest shortcuts for New Session and Command Palette
+- PWA shortcut action handling
+**Commits:**
+- `feat: add virtual keyboard detection for iOS`
+- `feat: add CSS adjustments for visible keyboard state`
+- `feat: increase touch targets to 44px minimum`
+- `feat: add modal scroll lock for iOS`
+- `feat: add iOS-optimized input attributes`
+- `feat: enhance PWA manifest with shortcuts`
+- `feat: handle PWA shortcut actions`
+
 ## 2026-01-15 — v3 Phase 10: Import/Export & Clipboard
 **Files:** public/app.js
 **Why:** Allow users to copy, export, and import session content

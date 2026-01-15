@@ -89,3 +89,8 @@ ClaudePod/
 - [✅] Copy selection to clipboard (v3)
 - [✅] Session export to file (v3)
 - [✅] File import to terminal (v3)
+- [✅] Virtual keyboard detection for iOS (v3)
+- [✅] Touch targets 44px minimum (v3)
+- [✅] Modal scroll lock for iOS (v3)
+- [✅] iOS-optimized input attributes (v3)
+- [✅] PWA shortcuts (v3)

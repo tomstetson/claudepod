@@ -32,12 +32,23 @@ Complete v3 implementation - the complete mobile Claude Code experience
 - [x] Copy selection to clipboard (Cmd+C or palette)
 - [x] Session export to file (Cmd+S or palette)
 - [x] File import to terminal (Cmd+O or palette)
+- [x] Virtual keyboard detection for iOS (visualViewport API)
+- [x] Keyboard-visible CSS adjustments
+- [x] Touch targets increased to 44px minimum
+- [x] Modal scroll lock for iOS
+- [x] iOS input attributes (autocapitalize, enterkeyhint)
+- [x] PWA manifest shortcuts
+- [x] PWA shortcut action handling
 - [x] All 42 tests passing
 
 ## Files Modified
-- `public/app.js` — Copy, export, import features
+- `public/app.js` — Keyboard detection, scroll lock, PWA actions
+- `public/style.css` — Keyboard CSS, touch targets
+- `public/index.html` — iOS input attributes
+- `public/manifest.json` — PWA shortcuts
+- `public/sw.js` — Cache version 9
 
 ## Next Steps
 1. Output virtualization for very large sessions
-2. Multi-session backup/restore
-3. Session history/snapshots
+2. iPad-specific optimizations
+3. Pull-to-refresh for session list
