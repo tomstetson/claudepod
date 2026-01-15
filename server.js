@@ -20,18 +20,9 @@ const wss = new WebSocketServer({ server });
 
 const PORT = process.env.PORT || 3000;
 
-// Security headers
+// Security headers - relaxed CSP for local network use
 app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "cdn.jsdelivr.net"],
-      styleSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net", "fonts.googleapis.com"],
-      fontSrc: ["'self'", "fonts.gstatic.com"],
-      connectSrc: ["'self'", "ws:", "wss:"],
-      imgSrc: ["'self'", "data:"],
-    },
-  },
+  contentSecurityPolicy: false, // Disable CSP - app runs on trusted local network
 }));
 
 // Rate limiting
