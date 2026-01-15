@@ -18,12 +18,14 @@ const CLAUDE_COMMANDS = [
   { cmd: 'npm run build', desc: 'Build project', category: 'Dev' },
   { cmd: 'ls -la', desc: 'List files', category: 'Dev' },
   { cmd: '__rename__', desc: 'Rename current session', category: 'Session', display: 'Rename' },
+  { cmd: '__search__', desc: 'Search terminal output', category: 'Session', display: 'Search' },
 ];
 
 class ClaudePod {
   constructor() {
     this.terminal = null;
     this.fitAddon = null;
+    this.searchAddon = null;
     this.socket = null;
     this.currentSession = null;
     this.sessions = [];
@@ -46,6 +48,7 @@ class ClaudePod {
     this.setupDirModal();
     this.setupInputComposer();
     this.setupCommandPalette();
+    this.setupGestures();
     this.setupOfflineDetection();
     this.setupInstallPrompt();
     await this.loadSessions();
@@ -106,6 +109,12 @@ class ClaudePod {
 
     const webLinksAddon = new WebLinksAddon.WebLinksAddon();
     this.terminal.loadAddon(webLinksAddon);
+
+    // Search addon
+    if (typeof SearchAddon !== 'undefined') {
+      this.searchAddon = new SearchAddon.SearchAddon();
+      this.terminal.loadAddon(this.searchAddon);
+    }
 
     const terminalEl = document.getElementById('terminal');
     this.terminal.open(terminalEl);
@@ -531,6 +540,11 @@ class ClaudePod {
       return;
     }
 
+    if (item.cmd === '__search__') {
+      this.showSearchPrompt();
+      return;
+    }
+
     // For control characters, send directly
     if (item.cmd === '\x03' || item.cmd === '\x1b') {
       this.sendInput(item.cmd);
@@ -590,6 +604,86 @@ class ClaudePod {
     this.fitTerminal();
 
     this.showStatus(`Font size: ${newSize}px`, 'info');
+  }
+
+  // Gesture support
+  setupGestures() {
+    if (typeof Hammer === 'undefined') {
+      console.warn('Hammer.js not loaded, gestures disabled');
+      return;
+    }
+
+    const terminalEl = document.getElementById('terminal');
+    const hammer = new Hammer(terminalEl);
+
+    // Configure swipe
+    hammer.get('swipe').set({ direction: Hammer.DIRECTION_HORIZONTAL });
+
+    // Swipe left = next session
+    hammer.on('swipeleft', () => {
+      this.haptic('light');
+      this.nextSession();
+    });
+
+    // Swipe right = previous session
+    hammer.on('swiperight', () => {
+      this.haptic('light');
+      this.prevSession();
+    });
+  }
+
+  nextSession() {
+    if (this.sessions.length < 2) return;
+
+    const currentIndex = this.sessions.findIndex(s => s.name === this.currentSession);
+    const nextIndex = (currentIndex + 1) % this.sessions.length;
+    const nextSession = this.sessions[nextIndex];
+
+    if (nextSession) {
+      this.connectToSession(nextSession.name);
+    }
+  }
+
+  prevSession() {
+    if (this.sessions.length < 2) return;
+
+    const currentIndex = this.sessions.findIndex(s => s.name === this.currentSession);
+    const prevIndex = currentIndex <= 0 ? this.sessions.length - 1 : currentIndex - 1;
+    const prevSession = this.sessions[prevIndex];
+
+    if (prevSession) {
+      this.connectToSession(prevSession.name);
+    }
+  }
+
+  // Terminal search
+  showSearchPrompt() {
+    if (!this.searchAddon) {
+      this.showStatus('Search not available', 'warning');
+      return;
+    }
+
+    const query = prompt('Search terminal:');
+    if (query && query.trim()) {
+      const found = this.searchAddon.findNext(query.trim());
+      if (!found) {
+        this.showStatus('No matches found', 'info');
+      } else {
+        this.showStatus(`Found: "${query.trim()}"`, 'success');
+      }
+    }
+  }
+
+  searchNext() {
+    if (this.searchAddon) {
+      this.searchAddon.findNext();
+    }
+  }
+
+  searchPrev() {
+    if (this.searchAddon) {
+      this.searchAddon.findPrevious();
+    }
   }
 
   async loadDirectories(path) {
