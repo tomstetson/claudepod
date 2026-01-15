@@ -55,7 +55,16 @@
 
     <!-- Text input composer -->
     <div class="input-bar">
-      <textarea id="input-composer" placeholder="Type a message..." rows="1" autocomplete="off" autocorrect="off" spellcheck="false"></textarea>
+      <textarea
+        id="input-composer"
+        placeholder="Type a message..."
+        rows="1"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="none"
+        spellcheck="false"
+        enterkeyhint="send"
+      ></textarea>
       <button id="send-btn" class="btn btn-primary" aria-label="Send">
         <span class="send-icon">↑</span>
       </button>
@@ -109,7 +118,16 @@
       <div class="modal palette-modal">
         <h2 id="palette-modal-title" class="sr-only">Command Palette</h2>
         <div class="palette-search">
-          <input type="text" id="palette-search" placeholder="Search commands..." autocomplete="off" autocorrect="off" spellcheck="false">
+          <input
+            type="text"
+            id="palette-search"
+            placeholder="Search commands..."
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="none"
+            spellcheck="false"
+            enterkeyhint="search"
+          >
         </div>
         <div class="palette-list" id="palette-list"></div>
       </div>
