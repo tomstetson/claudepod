@@ -4,6 +4,7 @@ class ClaudePod {
   constructor() {
     this.terminal = null;
     this.fitAddon = null;
+    this.searchAddon = null;
     this.socket = null;
     this.currentSession = null;
     this.sessions = [];
@@ -13,6 +14,28 @@ class ClaudePod {
     this.currentDirPath = '';
     this.refreshInterval = null;
     this.deferredPrompt = null;
+    this.lastTap = 0; // Fix: Initialize lastTap
+    this.fontSize = parseInt(localStorage.getItem('claudepod-fontsize')) || 14;
+    this.searchVisible = false;
+    this.gestureHintShown = localStorage.getItem('claudepod-gesture-hint-shown') === 'true';
+    this.commandPaletteSelectedIndex = 0;
+
+    // Command palette commands
+    this.commands = [
+      { category: 'Claude Commands', name: '/compact', desc: 'Reduce context usage', icon: '📦' },
+      { category: 'Claude Commands', name: '/help', desc: 'Show Claude help', icon: '❓' },
+      { category: 'Claude Commands', name: '/clear', desc: 'Clear conversation', icon: '🧹' },
+      { category: 'Claude Commands', name: '/status', desc: 'Show session status', icon: '📊' },
+      { category: 'Claude Commands', name: '/cost', desc: 'Show token costs', icon: '💰' },
+      { category: 'Git Commands', name: 'git status', desc: 'Show working tree status', icon: '📋' },
+      { category: 'Git Commands', name: 'git diff', desc: 'Show changes', icon: '📝' },
+      { category: 'Git Commands', name: 'git log --oneline -10', desc: 'Recent commits', icon: '📜' },
+      { category: 'Git Commands', name: 'git add .', desc: 'Stage all changes', icon: '➕' },
+      { category: 'Common', name: 'ls -la', desc: 'List files (detailed)', icon: '📁' },
+      { category: 'Common', name: 'pwd', desc: 'Print working directory', icon: '📍' },
+      { category: 'Common', name: 'npm test', desc: 'Run tests', icon: '🧪' },
+      { category: 'Common', name: 'npm run build', desc: 'Build project', icon: '🔨' },
+    ];
 
     this.init();
   }
@@ -22,10 +45,20 @@ class ClaudePod {
     this.setupEventListeners();
     this.setupModal();
     this.setupDirModal();
+    this.setupCommandPalette();
+    this.setupInputComposer();
+    this.setupSearch();
+    this.setupGestures();
+    this.setupFontControls();
     this.setupOfflineDetection();
     this.setupInstallPrompt();
     await this.loadSessions();
     this.startSessionRefresh();
+
+    // Show gesture hint on first use
+    if (!this.gestureHintShown) {
+      setTimeout(() => this.showGestureHint(), 2000);
+    }
 
     // Register service worker
     if ('serviceWorker' in navigator) {
@@ -41,7 +74,7 @@ class ClaudePod {
   setupTerminal() {
     this.terminal = new Terminal({
       cursorBlink: true,
-      fontSize: 14,
+      fontSize: this.fontSize,
       fontFamily: '"JetBrains Mono", "SF Mono", Menlo, Monaco, "Courier New", monospace',
       fontWeight: 400,
       letterSpacing: 0,
@@ -82,6 +115,10 @@ class ClaudePod {
 
     const webLinksAddon = new WebLinksAddon.WebLinksAddon();
     this.terminal.loadAddon(webLinksAddon);
+
+    // Load search addon
+    this.searchAddon = new SearchAddon.SearchAddon();
+    this.terminal.loadAddon(this.searchAddon);
 
     const terminalEl = document.getElementById('terminal');
     this.terminal.open(terminalEl);
@@ -149,9 +186,10 @@ class ClaudePod {
     const killSessionBtn = document.getElementById('kill-session-btn');
     killSessionBtn.addEventListener('click', () => this.showKillModal());
 
-    // Quick action buttons
+    // Quick action buttons with haptic feedback
     document.querySelectorAll('.action-btn:not(#kill-session-btn)').forEach(btn => {
       btn.addEventListener('click', () => {
+        this.hapticFeedback();
         const input = btn.dataset.input;
         const key = btn.dataset.key;
 
@@ -180,6 +218,19 @@ class ClaudePod {
       const activeEl = document.activeElement;
       const isInputFocused = activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT';
 
+      // Cmd/Ctrl + F: Open search (always)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        this.toggleSearch();
+        return;
+      }
+
+      // Escape: Close search if visible
+      if (e.key === 'Escape' && this.searchVisible) {
+        this.hideSearch();
+        return;
+      }
+
       if (isInputFocused) return;
 
       // Ctrl/Cmd + Shift + N: New session
@@ -193,9 +244,366 @@ class ClaudePod {
         e.preventDefault();
         this.showKillModal();
       }
+
+      // Ctrl/Cmd + Shift + P: Command palette
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'P') {
+        e.preventDefault();
+        this.showCommandPalette();
+      }
     });
   }
 
+  // ============ HAPTIC FEEDBACK ============
+  hapticFeedback(type = 'light') {
+    if ('vibrate' in navigator) {
+      const patterns = {
+        light: 10,
+        medium: 20,
+        heavy: 30
+      };
+      navigator.vibrate(patterns[type] || 10);
+    }
+  }
+
+  // ============ FONT SIZE CONTROLS ============
+  setupFontControls() {
+    const decreaseBtn = document.getElementById('font-decrease-btn');
+    const increaseBtn = document.getElementById('font-increase-btn');
+
+    decreaseBtn.addEventListener('click', () => {
+      this.hapticFeedback();
+      this.changeFontSize(-1);
+    });
+
+    increaseBtn.addEventListener('click', () => {
+      this.hapticFeedback();
+      this.changeFontSize(1);
+    });
+  }
+
+  changeFontSize(delta) {
+    const newSize = Math.max(10, Math.min(24, this.fontSize + delta));
+    if (newSize !== this.fontSize) {
+      this.fontSize = newSize;
+      this.terminal.options.fontSize = newSize;
+      localStorage.setItem('claudepod-fontsize', newSize.toString());
+      this.fitTerminal();
+      this.showStatus(`Font size: ${newSize}px`, 'info');
+    }
+  }
+
+  // ============ INPUT COMPOSER ============
+  setupInputComposer() {
+    const inputText = document.getElementById('input-text');
+    const sendBtn = document.getElementById('send-btn');
+    const commandPaletteBtn = document.getElementById('command-palette-btn');
+
+    // Auto-resize textarea
+    inputText.addEventListener('input', () => {
+      inputText.style.height = 'auto';
+      inputText.style.height = Math.min(inputText.scrollHeight, 120) + 'px';
+
+      // Check for / prefix to show command palette hint
+      if (inputText.value === '/') {
+        this.showCommandPalette();
+        inputText.value = '';
+      }
+    });
+
+    // Send on button click
+    sendBtn.addEventListener('click', () => {
+      this.sendComposerInput();
+    });
+
+    // Send on Enter (Shift+Enter for newline)
+    inputText.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        this.sendComposerInput();
+      }
+    });
+
+    // Command palette button
+    commandPaletteBtn.addEventListener('click', () => {
+      this.hapticFeedback();
+      this.showCommandPalette();
+    });
+  }
+
+  sendComposerInput() {
+    const inputText = document.getElementById('input-text');
+    const text = inputText.value.trim();
+
+    if (text) {
+      this.hapticFeedback();
+      // Send the text followed by Enter
+      this.sendInput(text + '\n');
+      inputText.value = '';
+      inputText.style.height = 'auto';
+      this.terminal.focus();
+    }
+  }
+
+  // ============ COMMAND PALETTE ============
+  setupCommandPalette() {
+    const modal = document.getElementById('command-modal');
+    const searchInput = document.getElementById('command-search');
+    const commandList = document.getElementById('command-list');
+
+    // Close on overlay click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        this.hideCommandPalette();
+      }
+    });
+
+    // Search filtering
+    searchInput.addEventListener('input', () => {
+      this.filterCommands(searchInput.value);
+    });
+
+    // Keyboard navigation
+    searchInput.addEventListener('keydown', (e) => {
+      const items = commandList.querySelectorAll('.command-item');
+      if (items.length === 0) return;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        this.commandPaletteSelectedIndex = Math.min(this.commandPaletteSelectedIndex + 1, items.length - 1);
+        this.updateCommandSelection();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        this.commandPaletteSelectedIndex = Math.max(this.commandPaletteSelectedIndex - 1, 0);
+        this.updateCommandSelection();
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        const selected = items[this.commandPaletteSelectedIndex];
+        if (selected) {
+          this.executeCommand(selected.dataset.command);
+        }
+      } else if (e.key === 'Escape') {
+        this.hideCommandPalette();
+      }
+    });
+
+    // Command click handler via delegation
+    commandList.addEventListener('click', (e) => {
+      const item = e.target.closest('.command-item');
+      if (item) {
+        this.hapticFeedback();
+        this.executeCommand(item.dataset.command);
+      }
+    });
+  }
+
+  showCommandPalette() {
+    const modal = document.getElementById('command-modal');
+    const searchInput = document.getElementById('command-search');
+
+    this.commandPaletteSelectedIndex = 0;
+    searchInput.value = '';
+    this.renderCommands(this.commands);
+
+    modal.classList.add('visible');
+    setTimeout(() => searchInput.focus(), 100);
+  }
+
+  hideCommandPalette() {
+    const modal = document.getElementById('command-modal');
+    modal.classList.remove('visible');
+    this.terminal.focus();
+  }
+
+  renderCommands(commands) {
+    const commandList = document.getElementById('command-list');
+    let html = '';
+    let currentCategory = '';
+
+    commands.forEach((cmd, index) => {
+      if (cmd.category !== currentCategory) {
+        currentCategory = cmd.category;
+        html += `<div class="command-category">${cmd.category}</div>`;
+      }
+
+      html += `
+        <div class="command-item${index === this.commandPaletteSelectedIndex ? ' selected' : ''}" data-command="${cmd.name}">
+          <div class="command-icon">${cmd.icon}</div>
+          <div class="command-info">
+            <div class="command-name">${cmd.name}</div>
+            <div class="command-desc">${cmd.desc}</div>
+          </div>
+        </div>
+      `;
+    });
+
+    commandList.innerHTML = html || '<div class="dir-empty">No commands found</div>';
+  }
+
+  filterCommands(query) {
+    const lowerQuery = query.toLowerCase();
+    const filtered = this.commands.filter(cmd =>
+      cmd.name.toLowerCase().includes(lowerQuery) ||
+      cmd.desc.toLowerCase().includes(lowerQuery)
+    );
+    this.commandPaletteSelectedIndex = 0;
+    this.renderCommands(filtered);
+  }
+
+  updateCommandSelection() {
+    const items = document.querySelectorAll('#command-list .command-item');
+    items.forEach((item, index) => {
+      item.classList.toggle('selected', index === this.commandPaletteSelectedIndex);
+    });
+
+    // Scroll selected into view
+    const selected = items[this.commandPaletteSelectedIndex];
+    if (selected) {
+      selected.scrollIntoView({ block: 'nearest' });
+    }
+  }
+
+  executeCommand(command) {
+    this.hideCommandPalette();
+    this.hapticFeedback('medium');
+    this.sendInput(command + '\n');
+    this.terminal.focus();
+  }
+
+  // ============ TERMINAL SEARCH ============
+  setupSearch() {
+    const searchBar = document.getElementById('search-bar');
+    const searchInput = document.getElementById('search-input');
+    const searchPrev = document.getElementById('search-prev');
+    const searchNext = document.getElementById('search-next');
+    const searchClose = document.getElementById('search-close');
+
+    searchInput.addEventListener('input', () => {
+      this.performSearch(searchInput.value);
+    });
+
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          this.searchPrevious();
+        } else {
+          this.searchNext();
+        }
+      } else if (e.key === 'Escape') {
+        this.hideSearch();
+      }
+    });
+
+    searchPrev.addEventListener('click', () => {
+      this.hapticFeedback();
+      this.searchPrevious();
+    });
+
+    searchNext.addEventListener('click', () => {
+      this.hapticFeedback();
+      this.searchNext();
+    });
+
+    searchClose.addEventListener('click', () => {
+      this.hapticFeedback();
+      this.hideSearch();
+    });
+  }
+
+  toggleSearch() {
+    if (this.searchVisible) {
+      this.hideSearch();
+    } else {
+      this.showSearch();
+    }
+  }
+
+  showSearch() {
+    const searchBar = document.getElementById('search-bar');
+    const searchInput = document.getElementById('search-input');
+
+    this.searchVisible = true;
+    searchBar.classList.add('visible');
+    setTimeout(() => searchInput.focus(), 100);
+  }
+
+  hideSearch() {
+    const searchBar = document.getElementById('search-bar');
+    const searchInput = document.getElementById('search-input');
+
+    this.searchVisible = false;
+    searchBar.classList.remove('visible');
+    searchInput.value = '';
+    document.getElementById('search-results-count').textContent = '';
+    this.searchAddon.clearDecorations();
+    this.terminal.focus();
+  }
+
+  performSearch(query) {
+    const resultsCount = document.getElementById('search-results-count');
+
+    if (!query) {
+      resultsCount.textContent = '';
+      this.searchAddon.clearDecorations();
+      return;
+    }
+
+    const result = this.searchAddon.findNext(query, { decorations: { activeMatchColorOverviewRuler: '#d97706' } });
+    // Note: xterm-addon-search doesn't provide match count, so we just indicate if found
+    resultsCount.textContent = result ? 'Found' : 'No results';
+  }
+
+  searchNext() {
+    const searchInput = document.getElementById('search-input');
+    if (searchInput.value) {
+      this.searchAddon.findNext(searchInput.value);
+    }
+  }
+
+  searchPrevious() {
+    const searchInput = document.getElementById('search-input');
+    if (searchInput.value) {
+      this.searchAddon.findPrevious(searchInput.value);
+    }
+  }
+
+  // ============ TWO-FINGER TAP GESTURES ============
+  setupGestures() {
+    const terminalContainer = document.querySelector('.terminal-container');
+    let touchStartTime = 0;
+    let touchCount = 0;
+
+    terminalContainer.addEventListener('touchstart', (e) => {
+      touchCount = e.touches.length;
+      touchStartTime = Date.now();
+    }, { passive: true });
+
+    terminalContainer.addEventListener('touchend', (e) => {
+      const touchDuration = Date.now() - touchStartTime;
+
+      // Two-finger tap (quick touch, less than 300ms)
+      if (touchCount === 2 && touchDuration < 300 && e.changedTouches.length > 0) {
+        e.preventDefault();
+        this.hapticFeedback('medium');
+        this.toggleSearch();
+      }
+
+      touchCount = 0;
+    });
+  }
+
+  showGestureHint() {
+    const hint = document.getElementById('gesture-hint');
+    hint.classList.add('visible');
+
+    setTimeout(() => {
+      hint.classList.remove('visible');
+      this.gestureHintShown = true;
+      localStorage.setItem('claudepod-gesture-hint-shown', 'true');
+    }, 4000);
+  }
+
+  // ============ MODALS ============
   setupModal() {
     const modal = document.getElementById('kill-modal');
     const cancelBtn = document.getElementById('modal-cancel');
@@ -247,6 +655,7 @@ class ClaudePod {
       const item = e.target.closest('.dir-item');
       if (!item) return;
 
+      this.hapticFeedback();
       const path = item.dataset.path;
       if (path === '..') {
         this.loadDirectories(this.currentDirPath.split('/').slice(0, -1).join('/'));
@@ -275,19 +684,13 @@ class ClaudePod {
 
     try {
       const response = await fetch(`/api/directories?path=${encodeURIComponent(path)}`);
-      const text = await response.text();
-
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (parseErr) {
-        console.error('Failed to parse response:', text.substring(0, 200));
-        throw new Error('Invalid response from server');
-      }
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to load directories');
+        const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+        throw new Error(errorData.error || 'Failed to load directories');
       }
+
+      const data = await response.json();
 
       this.currentDirPath = data.current === '/' ? '' : data.current;
       pathDisplay.textContent = data.base + (data.current === '/' ? '' : '/' + data.current);
@@ -344,7 +747,7 @@ class ClaudePod {
       });
 
       if (!response.ok) {
-        const data = await response.json();
+        const data = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
         throw new Error(data.error || 'Failed to create session');
       }
 
@@ -390,10 +793,11 @@ class ClaudePod {
       });
 
       if (!response.ok) {
-        const data = await response.json();
+        const data = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
         throw new Error(data.error || 'Failed to end session');
       }
 
+      this.hapticFeedback('heavy');
       this.showStatus(`Ended ${sessionName}`, 'success');
       this.currentSession = null;
       this.terminal.clear();
@@ -408,6 +812,11 @@ class ClaudePod {
   async loadSessions() {
     try {
       const response = await fetch('/api/sessions');
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
       const data = await response.json();
       this.sessions = data.sessions || [];
       this.updateSessionSelect();
@@ -435,7 +844,8 @@ class ClaudePod {
       this.sessions.forEach(session => {
         const option = document.createElement('option');
         option.value = session.name;
-        option.textContent = session.name + (session.attached ? ' •' : '');
+        // Show attachment status indicator
+        option.textContent = session.name + (session.attached ? ' ●' : '');
         if (session.name === this.currentSession) {
           option.selected = true;
         }

@@ -29,6 +29,8 @@
         </span>
       </div>
       <div class="header-right">
+        <button id="font-decrease-btn" class="btn btn-icon" aria-label="Decrease font size" title="Decrease font">A-</button>
+        <button id="font-increase-btn" class="btn btn-icon" aria-label="Increase font size" title="Increase font">A+</button>
         <select id="session-select" class="session-select" aria-label="Select session">
           <option value="">No sessions</option>
         </select>
@@ -41,7 +43,25 @@
     <main class="terminal-container">
       <div id="terminal"></div>
       <div id="status" class="status" role="status" aria-live="polite"></div>
+
+      <!-- Search bar (hidden by default, shown with two-finger tap) -->
+      <div id="search-bar" class="search-bar">
+        <input type="text" id="search-input" class="search-input" placeholder="Search terminal..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        <div class="search-nav">
+          <span id="search-results-count" class="search-results-count"></span>
+          <button id="search-prev" class="btn btn-icon btn-sm" aria-label="Previous match">↑</button>
+          <button id="search-next" class="btn btn-icon btn-sm" aria-label="Next match">↓</button>
+          <button id="search-close" class="btn btn-icon btn-sm" aria-label="Close search">✕</button>
+        </div>
+      </div>
     </main>
+
+    <!-- Input composer -->
+    <div class="input-composer">
+      <textarea id="input-text" class="input-text" placeholder="Type a message..." rows="1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+      <button id="command-palette-btn" class="btn btn-icon" aria-label="Command palette" title="Commands (/)">⌘</button>
+      <button id="send-btn" class="btn btn-primary btn-send" aria-label="Send">Send</button>
+    </div>
 
     <!-- Quick action buttons -->
     <footer class="quick-actions">
@@ -85,11 +105,31 @@
         </div>
       </div>
     </div>
+
+    <!-- Command palette modal -->
+    <div id="command-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="command-modal-title">
+      <div class="modal modal-lg">
+        <h2 id="command-modal-title" class="modal-title">Command Palette</h2>
+        <input type="text" id="command-search" class="command-search" placeholder="Search commands..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        <div class="command-list" id="command-list">
+          <!-- Commands populated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Gesture hint overlay -->
+    <div id="gesture-hint" class="gesture-hint">
+      <div class="gesture-hint-content">
+        <span class="gesture-icon">👆👆</span>
+        <span class="gesture-text">Two-finger tap: Search</span>
+      </div>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xterm-addon-web-links@0.9.0/lib/xterm-addon-web-links.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xterm-addon-search@0.13.0/lib/xterm-addon-search.min.js"></script>
   <script src="/app.js"></script>
 </body>
 </html>

@@ -5,14 +5,15 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const http = require('http');
 const fs = require('fs');
+const os = require('os');
 const { WebSocketServer } = require('ws');
 const path = require('path');
 const pty = require('node-pty');
 const tmux = require('./lib/tmux');
 const notifications = require('./lib/notifications');
 
-// Base projects directory
-const PROJECTS_DIR = process.env.CLAUDEPOD_PROJECTS_DIR || '/Users/tomstetson/Projects';
+// Base projects directory - use env var or fall back to ~/Projects
+const PROJECTS_DIR = process.env.CLAUDEPOD_PROJECTS_DIR || path.join(os.homedir(), 'Projects');
 
 const app = express();
 const server = http.createServer(app);
@@ -171,7 +172,8 @@ wss.on('connection', (ws, req) => {
   notifications.clearDebounce(sessionName);
 
   // Spawn pty attached to tmux session
-  const tmuxPath = process.env.TMUX_PATH || '/opt/homebrew/bin/tmux';
+  // Try to find tmux in PATH, fall back to common locations
+  const tmuxPath = process.env.TMUX_PATH || 'tmux';
   let ptyProcess;
   try {
     ptyProcess = pty.spawn(tmuxPath, ['attach', '-t', sessionName], {
