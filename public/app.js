@@ -1,5 +1,134 @@
 // ClaudePod - Web Terminal Client
 
+// Terminal color themes
+const TERMINAL_THEMES = {
+  default: {
+    name: 'Default',
+    background: '#0a0a0a',
+    foreground: '#e8e6e3',
+    cursor: '#d97706',
+    cursorAccent: '#0a0a0a',
+    selectionBackground: 'rgba(217, 119, 6, 0.25)',
+    selectionForeground: '#e8e6e3',
+    black: '#1c1c1c',
+    red: '#ef4444',
+    green: '#22c55e',
+    yellow: '#eab308',
+    blue: '#3b82f6',
+    magenta: '#a855f7',
+    cyan: '#06b6d4',
+    white: '#e8e6e3',
+    brightBlack: '#4a4a4a',
+    brightRed: '#f87171',
+    brightGreen: '#4ade80',
+    brightYellow: '#facc15',
+    brightBlue: '#60a5fa',
+    brightMagenta: '#c084fc',
+    brightCyan: '#22d3ee',
+    brightWhite: '#ffffff'
+  },
+  dracula: {
+    name: 'Dracula',
+    background: '#282a36',
+    foreground: '#f8f8f2',
+    cursor: '#f8f8f2',
+    cursorAccent: '#282a36',
+    selectionBackground: 'rgba(68, 71, 90, 0.5)',
+    selectionForeground: '#f8f8f2',
+    black: '#21222c',
+    red: '#ff5555',
+    green: '#50fa7b',
+    yellow: '#f1fa8c',
+    blue: '#bd93f9',
+    magenta: '#ff79c6',
+    cyan: '#8be9fd',
+    white: '#f8f8f2',
+    brightBlack: '#6272a4',
+    brightRed: '#ff6e6e',
+    brightGreen: '#69ff94',
+    brightYellow: '#ffffa5',
+    brightBlue: '#d6acff',
+    brightMagenta: '#ff92df',
+    brightCyan: '#a4ffff',
+    brightWhite: '#ffffff'
+  },
+  nord: {
+    name: 'Nord',
+    background: '#2e3440',
+    foreground: '#d8dee9',
+    cursor: '#d8dee9',
+    cursorAccent: '#2e3440',
+    selectionBackground: 'rgba(136, 192, 208, 0.3)',
+    selectionForeground: '#d8dee9',
+    black: '#3b4252',
+    red: '#bf616a',
+    green: '#a3be8c',
+    yellow: '#ebcb8b',
+    blue: '#81a1c1',
+    magenta: '#b48ead',
+    cyan: '#88c0d0',
+    white: '#e5e9f0',
+    brightBlack: '#4c566a',
+    brightRed: '#bf616a',
+    brightGreen: '#a3be8c',
+    brightYellow: '#ebcb8b',
+    brightBlue: '#81a1c1',
+    brightMagenta: '#b48ead',
+    brightCyan: '#8fbcbb',
+    brightWhite: '#eceff4'
+  },
+  solarized: {
+    name: 'Solarized Dark',
+    background: '#002b36',
+    foreground: '#839496',
+    cursor: '#839496',
+    cursorAccent: '#002b36',
+    selectionBackground: 'rgba(131, 148, 150, 0.3)',
+    selectionForeground: '#839496',
+    black: '#073642',
+    red: '#dc322f',
+    green: '#859900',
+    yellow: '#b58900',
+    blue: '#268bd2',
+    magenta: '#d33682',
+    cyan: '#2aa198',
+    white: '#eee8d5',
+    brightBlack: '#586e75',
+    brightRed: '#cb4b16',
+    brightGreen: '#586e75',
+    brightYellow: '#657b83',
+    brightBlue: '#839496',
+    brightMagenta: '#6c71c4',
+    brightCyan: '#93a1a1',
+    brightWhite: '#fdf6e3'
+  },
+  monokai: {
+    name: 'Monokai',
+    background: '#272822',
+    foreground: '#f8f8f2',
+    cursor: '#f8f8f2',
+    cursorAccent: '#272822',
+    selectionBackground: 'rgba(73, 72, 62, 0.5)',
+    selectionForeground: '#f8f8f2',
+    black: '#272822',
+    red: '#f92672',
+    green: '#a6e22e',
+    yellow: '#f4bf75',
+    blue: '#66d9ef',
+    magenta: '#ae81ff',
+    cyan: '#a1efe4',
+    white: '#f8f8f2',
+    brightBlack: '#75715e',
+    brightRed: '#f92672',
+    brightGreen: '#a6e22e',
+    brightYellow: '#f4bf75',
+    brightBlue: '#66d9ef',
+    brightMagenta: '#ae81ff',
+    brightCyan: '#a1efe4',
+    brightWhite: '#f9f8f5'
+  }
+};
+
 // Claude commands for the palette
 const CLAUDE_COMMANDS = [
   { cmd: '/help', desc: 'Show help', category: 'Claude' },
@@ -24,6 +153,7 @@ const CLAUDE_COMMANDS = [
   { cmd: '__scroll_top__', desc: 'Scroll to top', category: 'View', display: '↑ Top' },
   { cmd: '__scroll_bottom__', desc: 'Scroll to bottom', category: 'View', display: '↓ Bottom' },
   { cmd: '__shortcuts__', desc: 'Show keyboard shortcuts', category: 'Help', display: '⌨ Shortcuts' },
+  { cmd: '__theme__', desc: 'Change terminal theme', category: 'View', display: '🎨 Theme' },
 ];
 
 class ClaudePod {
@@ -44,6 +174,7 @@ class ClaudePod {
     this.filteredCommands = [];
     this.pingInterval = null;
     this.latency = null;
+    this.currentTheme = localStorage.getItem('claudepod_theme') || 'default';
 
     this.init();
   }
@@ -73,6 +204,8 @@ class ClaudePod {
   }
 
   setupTerminal() {
+    const theme = TERMINAL_THEMES[this.currentTheme] || TERMINAL_THEMES.default;
+
     this.terminal = new Terminal({
       cursorBlink: true,
       fontSize: 14,
@@ -80,30 +213,7 @@ class ClaudePod {
       fontWeight: 400,
       letterSpacing: 0,
       lineHeight: 1.2,
-      theme: {
-        background: '#0a0a0a',
-        foreground: '#e8e6e3',
-        cursor: '#d97706',
-        cursorAccent: '#0a0a0a',
-        selectionBackground: 'rgba(217, 119, 6, 0.25)',
-        selectionForeground: '#e8e6e3',
-        black: '#1c1c1c',
-        red: '#ef4444',
-        green: '#22c55e',
-        yellow: '#eab308',
-        blue: '#3b82f6',
-        magenta: '#a855f7',
-        cyan: '#06b6d4',
-        white: '#e8e6e3',
-        brightBlack: '#4a4a4a',
-        brightRed: '#f87171',
-        brightGreen: '#4ade80',
-        brightYellow: '#facc15',
-        brightBlue: '#60a5fa',
-        brightMagenta: '#c084fc',
-        brightCyan: '#22d3ee',
-        brightWhite: '#ffffff'
-      },
+      theme: theme,
       allowTransparency: false,
       scrollback: 5000,
       tabStopWidth: 4,
@@ -615,6 +725,11 @@ class ClaudePod {
       return;
     }
 
+    if (item.cmd === '__theme__') {
+      this.showThemeSelector();
+      return;
+    }
+
     // For control characters, send directly
     if (item.cmd === '\x03' || item.cmd === '\x1b') {
       this.sendInput(item.cmd);
@@ -748,6 +863,52 @@ class ClaudePod {
     output += '  \x1b[38;2;90;90;90mTap "/" for command palette\x1b[0m\r\n';
 
     this.terminal.write(output);
+  }
+
+  // Theme selector
+  showThemeSelector() {
+    const themeNames = Object.keys(TERMINAL_THEMES);
+    const currentIndex = themeNames.indexOf(this.currentTheme);
+
+    // Show available themes in terminal
+    let output = '\r\n\x1b[1;36m  Terminal Themes\x1b[0m\r\n';
+    output += '\x1b[38;2;90;90;90m  ─────────────────────────────\x1b[0m\r\n';
+
+    themeNames.forEach((key, idx) => {
+      const theme = TERMINAL_THEMES[key];
+      const marker = key === this.currentTheme ? '→' : ' ';
+      output += `  ${marker} \x1b[1;33m${(idx + 1)}.\x1b[0m ${theme.name}\r\n`;
+    });
+
+    output += '\x1b[38;2;90;90;90m  ─────────────────────────────\x1b[0m\r\n';
+    output += '  \x1b[38;2;90;90;90mEnter number to select theme\x1b[0m\r\n';
+
+    this.terminal.write(output);
+
+    // Use prompt for selection
+    const choice = prompt(`Select theme (1-${themeNames.length}):`, String(currentIndex + 1));
+    if (choice === null) return;
+
+    const idx = parseInt(choice) - 1;
+    if (idx >= 0 && idx < themeNames.length) {
+      this.setTheme(themeNames[idx]);
+    }
+  }
+
+  setTheme(themeName) {
+    if (!TERMINAL_THEMES[themeName]) {
+      this.showStatus('Unknown theme', 'error');
+      return;
+    }
+
+    this.currentTheme = themeName;
+    localStorage.setItem('claudepod_theme', themeName);
+
+    const theme = TERMINAL_THEMES[themeName];
+    this.terminal.options.theme = theme;
+
+    this.haptic('success');
+    this.showStatus(`Theme: ${theme.name}`, 'success');
   }
 
   // Terminal search
