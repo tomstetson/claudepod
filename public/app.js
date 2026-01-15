@@ -1,5 +1,24 @@
 // ClaudePod - Web Terminal Client
 
+// Claude commands for the palette
+const CLAUDE_COMMANDS = [
+  { cmd: '/help', desc: 'Show help', category: 'Claude' },
+  { cmd: '/compact', desc: 'Compact conversation', category: 'Claude' },
+  { cmd: '/clear', desc: 'Clear conversation', category: 'Claude' },
+  { cmd: '/status', desc: 'Show status', category: 'Claude' },
+  { cmd: '/config', desc: 'Show config', category: 'Claude' },
+  { cmd: 'y', desc: 'Yes / Confirm', category: 'Quick' },
+  { cmd: 'n', desc: 'No / Decline', category: 'Quick' },
+  { cmd: '\x03', desc: 'Cancel (Ctrl+C)', category: 'Control', display: '^C' },
+  { cmd: '\x1b', desc: 'Escape', category: 'Control', display: 'Esc' },
+  { cmd: 'git status', desc: 'Show working tree status', category: 'Git' },
+  { cmd: 'git diff', desc: 'Show changes', category: 'Git' },
+  { cmd: 'git log --oneline -10', desc: 'Recent commits', category: 'Git' },
+  { cmd: 'npm test', desc: 'Run tests', category: 'Dev' },
+  { cmd: 'npm run build', desc: 'Build project', category: 'Dev' },
+  { cmd: 'ls -la', desc: 'List files', category: 'Dev' },
+];
+
 class ClaudePod {
   constructor() {
     this.terminal = null;
@@ -13,6 +32,8 @@ class ClaudePod {
     this.currentDirPath = '';
     this.refreshInterval = null;
     this.deferredPrompt = null;
+    this.selectedPaletteIndex = 0;
+    this.filteredCommands = [];
 
     this.init();
   }
@@ -22,6 +43,8 @@ class ClaudePod {
     this.setupEventListeners();
     this.setupModal();
     this.setupDirModal();
+    this.setupInputComposer();
+    this.setupCommandPalette();
     this.setupOfflineDetection();
     this.setupInstallPrompt();
     await this.loadSessions();
@@ -150,10 +173,12 @@ class ClaudePod {
     killSessionBtn.addEventListener('click', () => this.showKillModal());
 
     // Quick action buttons
-    document.querySelectorAll('.action-btn:not(#kill-session-btn)').forEach(btn => {
+    document.querySelectorAll('.action-btn:not(#kill-session-btn):not(#palette-btn)').forEach(btn => {
       btn.addEventListener('click', () => {
         const input = btn.dataset.input;
         const key = btn.dataset.key;
+
+        this.haptic('light');
 
         if (input) {
           this.sendInput(input);
@@ -271,6 +296,255 @@ class ClaudePod {
   hideDirModal() {
     const modal = document.getElementById('dir-modal');
     modal.classList.remove('visible');
+  }
+
+  setupInputComposer() {
+    const composer = document.getElementById('input-composer');
+    const sendBtn = document.getElementById('send-btn');
+
+    // Auto-resize textarea
+    composer.addEventListener('input', () => {
+      composer.style.height = 'auto';
+      composer.style.height = Math.min(composer.scrollHeight, 120) + 'px';
+    });
+
+    // Send on button click
+    sendBtn.addEventListener('click', () => this.sendComposerInput());
+
+    // Send on Enter (Shift+Enter for newline)
+    composer.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        this.sendComposerInput();
+      }
+    });
+  }
+
+  sendComposerInput() {
+    const composer = document.getElementById('input-composer');
+    const text = composer.value.trim();
+    if (!text) return;
+
+    this.haptic('medium');
+
+    // Send to terminal
+    this.sendInput(text + '\n');
+
+    // Add to history
+    this.addToHistory(text);
+
+    // Clear input
+    composer.value = '';
+    composer.style.height = 'auto';
+
+    // Focus terminal for scrolling
+    this.terminal.focus();
+  }
+
+  setupCommandPalette() {
+    const modal = document.getElementById('palette-modal');
+    const paletteBtn = document.getElementById('palette-btn');
+    const searchInput = document.getElementById('palette-search');
+    const paletteList = document.getElementById('palette-list');
+
+    // Open palette
+    paletteBtn.addEventListener('click', () => this.showPalette());
+
+    // Close on overlay click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        this.hidePalette();
+      }
+    });
+
+    // Search filtering
+    searchInput.addEventListener('input', () => {
+      this.filterPalette(searchInput.value);
+    });
+
+    // Keyboard navigation
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        this.hidePalette();
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        this.selectNextPaletteItem();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        this.selectPrevPaletteItem();
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        this.executePaletteItem();
+      }
+    });
+
+    // Click to execute
+    paletteList.addEventListener('click', (e) => {
+      const item = e.target.closest('.palette-item');
+      if (item) {
+        const index = parseInt(item.dataset.index);
+        if (!isNaN(index)) {
+          this.selectedPaletteIndex = index;
+          this.executePaletteItem();
+        }
+      }
+    });
+  }
+
+  showPalette() {
+    const modal = document.getElementById('palette-modal');
+    const searchInput = document.getElementById('palette-search');
+
+    modal.classList.add('visible');
+    searchInput.value = '';
+    this.filterPalette('');
+    searchInput.focus();
+  }
+
+  hidePalette() {
+    const modal = document.getElementById('palette-modal');
+    modal.classList.remove('visible');
+    this.terminal.focus();
+  }
+
+  filterPalette(query) {
+    const q = query.toLowerCase();
+    const history = this.getHistory();
+
+    // Build list: history first (if matching), then commands
+    let items = [];
+
+    // Add matching history items
+    if (history.length > 0) {
+      const matchingHistory = history
+        .filter(h => h.toLowerCase().includes(q))
+        .slice(0, 5)
+        .map(h => ({ cmd: h, desc: 'Recent', category: 'History' }));
+      items = items.concat(matchingHistory);
+    }
+
+    // Add matching commands
+    const matchingCmds = CLAUDE_COMMANDS.filter(c =>
+      c.cmd.toLowerCase().includes(q) ||
+      c.desc.toLowerCase().includes(q) ||
+      c.category.toLowerCase().includes(q)
+    );
+    items = items.concat(matchingCmds);
+
+    this.filteredCommands = items;
+    this.selectedPaletteIndex = 0;
+    this.renderPalette();
+  }
+
+  renderPalette() {
+    const paletteList = document.getElementById('palette-list');
+
+    if (this.filteredCommands.length === 0) {
+      paletteList.innerHTML = '<div class="palette-empty">No commands found</div>';
+      return;
+    }
+
+    // Group by category
+    const byCategory = {};
+    this.filteredCommands.forEach((item, idx) => {
+      if (!byCategory[item.category]) {
+        byCategory[item.category] = [];
+      }
+      byCategory[item.category].push({ ...item, idx });
+    });
+
+    let html = '';
+    for (const [category, items] of Object.entries(byCategory)) {
+      html += `<div class="palette-category">${category}</div>`;
+      for (const item of items) {
+        const selected = item.idx === this.selectedPaletteIndex ? 'palette-item-selected' : '';
+        const display = item.display || item.cmd;
+        html += `
+          <div class="palette-item ${selected}" data-index="${item.idx}">
+            <span class="palette-cmd">${this.escapeHtml(display)}</span>
+            <span class="palette-desc">${this.escapeHtml(item.desc)}</span>
+          </div>
+        `;
+      }
+    }
+
+    paletteList.innerHTML = html;
+
+    // Scroll selected into view
+    const selectedEl = paletteList.querySelector('.palette-item-selected');
+    if (selectedEl) {
+      selectedEl.scrollIntoView({ block: 'nearest' });
+    }
+  }
+
+  selectNextPaletteItem() {
+    if (this.selectedPaletteIndex < this.filteredCommands.length - 1) {
+      this.selectedPaletteIndex++;
+      this.renderPalette();
+    }
+  }
+
+  selectPrevPaletteItem() {
+    if (this.selectedPaletteIndex > 0) {
+      this.selectedPaletteIndex--;
+      this.renderPalette();
+    }
+  }
+
+  executePaletteItem() {
+    const item = this.filteredCommands[this.selectedPaletteIndex];
+    if (!item) return;
+
+    this.haptic('light');
+    this.hidePalette();
+
+    // For control characters, send directly
+    if (item.cmd === '\x03' || item.cmd === '\x1b') {
+      this.sendInput(item.cmd);
+    } else {
+      // Send command + newline
+      this.sendInput(item.cmd + '\n');
+      this.addToHistory(item.cmd);
+    }
+  }
+
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // Command history
+  addToHistory(cmd) {
+    const history = this.getHistory();
+    // Remove duplicates and add to front
+    const filtered = history.filter(h => h !== cmd);
+    filtered.unshift(cmd);
+    // Keep last 50
+    localStorage.setItem('claudepod_history', JSON.stringify(filtered.slice(0, 50)));
+  }
+
+  getHistory() {
+    try {
+      return JSON.parse(localStorage.getItem('claudepod_history') || '[]');
+    } catch {
+      return [];
+    }
+  }
+
+  // Haptic feedback
+  haptic(type = 'light') {
+    if (!navigator.vibrate) return;
+
+    const patterns = {
+      light: 10,
+      medium: 25,
+      heavy: 50,
+      success: [10, 50, 10],
+      error: [50, 100, 50],
+    };
+
+    navigator.vibrate(patterns[type] || patterns.light);
   }
 
   async loadDirectories(path) {

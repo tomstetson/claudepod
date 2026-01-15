@@ -43,13 +43,21 @@
       <div id="status" class="status" role="status" aria-live="polite"></div>
     </main>
 
+    <!-- Text input composer -->
+    <div class="input-bar">
+      <textarea id="input-composer" placeholder="Type a message..." rows="1" autocomplete="off" autocorrect="off" spellcheck="false"></textarea>
+      <button id="send-btn" class="btn btn-primary" aria-label="Send">
+        <span class="send-icon">↑</span>
+      </button>
+    </div>
+
     <!-- Quick action buttons -->
     <footer class="quick-actions">
+      <button id="palette-btn" class="action-btn" aria-label="Commands">/</button>
       <button class="action-btn" data-input="y" aria-label="Send Y">Y</button>
       <button class="action-btn" data-input="n" aria-label="Send N">N</button>
-      <button class="action-btn" data-key="Enter" aria-label="Send Enter">Enter</button>
+      <button class="action-btn" data-key="Enter" aria-label="Send Enter">↵</button>
       <button class="action-btn" data-key="Escape" aria-label="Send Escape">Esc</button>
-      <button class="action-btn" data-key="Tab" aria-label="Send Tab">Tab</button>
       <button class="action-btn" data-input="&#x03;" aria-label="Send Ctrl+C">^C</button>
       <button id="kill-session-btn" class="action-btn danger" aria-label="End session">End</button>
     </footer>
@@ -83,6 +91,17 @@
           <button id="dir-cancel" class="btn btn-ghost">Cancel</button>
           <button id="dir-select" class="btn btn-primary">Start Here</button>
         </div>
+      </div>
+    </div>
+
+    <!-- Command palette modal -->
+    <div id="palette-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="palette-modal-title">
+      <div class="modal palette-modal">
+        <h2 id="palette-modal-title" class="sr-only">Command Palette</h2>
+        <div class="palette-search">
+          <input type="text" id="palette-search" placeholder="Search commands..." autocomplete="off" autocorrect="off" spellcheck="false">
+        </div>
+        <div class="palette-list" id="palette-list"></div>
       </div>
     </div>
   </div>
