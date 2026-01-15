@@ -405,7 +405,8 @@ app.get('/health', (req, res) => {
 });
 
 // Catch-all: serve index.html for SPA routing
-app.get('*', (req, res) => {
+// Express 5 requires named wildcards
+app.get('/*splat', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
