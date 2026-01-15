@@ -907,8 +907,14 @@ class ClaudePod {
         option.value = session.name;
         // Show label if available, otherwise session name
         const displayName = session.label || session.name;
-        option.textContent = displayName + (session.attached ? ' •' : '');
-        option.title = session.label ? `${session.name}: ${session.label}` : session.name;
+        // Indicators: • = attached, 🔔 = notifications on, 🔕 = notifications off
+        let indicators = '';
+        if (session.attached) indicators += ' •';
+        if (session.notifications === false) indicators += ' 🔕';
+        option.textContent = displayName + indicators;
+        option.title = session.label
+          ? `${session.name}: ${session.label}${session.notifications === false ? ' (muted)' : ''}`
+          : `${session.name}${session.notifications === false ? ' (muted)' : ''}`;
         if (session.name === this.currentSession) {
           option.selected = true;
         }
