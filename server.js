@@ -71,7 +71,8 @@ wss.on('connection', (ws, req) => {
   notifications.clearDebounce(sessionName);
 
   // Spawn pty attached to tmux session
-  const ptyProcess = pty.spawn('tmux', ['attach', '-t', sessionName], {
+  const tmuxPath = process.env.TMUX_PATH || '/opt/homebrew/bin/tmux';
+  const ptyProcess = pty.spawn(tmuxPath, ['attach', '-t', sessionName], {
     name: 'xterm-256color',
     cols: 80,
     rows: 24,
