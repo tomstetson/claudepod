@@ -1,5 +1,18 @@
 # Recent Changes
 
+## 2026-01-15 — v3 Phase 8: Connection Quality & Notifications
+**Files:** server.js, public/app.js, public/style.css, lib/notifications.js, test/notifications.test.js
+**Why:** Better connection visibility and smarter notifications
+**Changes:**
+- Ping/pong WebSocket latency measurement every 5 seconds
+- Visual indicator color changes based on latency (green/yellow/red)
+- Enhanced notification patterns (30+ Claude-specific prompts)
+- Detects tool approvals, plan mode, selection prompts, etc.
+- Test suite now at 42 tests
+**Commits:**
+- `feat: add connection quality indicator with latency`
+- `feat: enhance notification patterns for Claude prompts`
+
 ## 2026-01-15 — v3 Phase 7: Keyboard Shortcuts & Help
 **Files:** public/app.js
 **Why:** Power user features and discoverability

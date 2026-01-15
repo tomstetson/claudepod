@@ -68,7 +68,7 @@ ClaudePod/
 - [✅] Offline detection
 - [✅] Smart reconnection on network restore
 - [✅] Install prompt
-- [✅] Comprehensive test suite (39 tests)
+- [✅] Comprehensive test suite (42 tests)
 - [✅] Text input composer (v3)
 - [✅] Command palette with search (v3)
 - [✅] Command history (v3)
@@ -83,3 +83,5 @@ ClaudePod/
 - [✅] Dynamic context-aware command palette (v3)
 - [✅] Keyboard shortcuts (Cmd+P/K/F) (v3)
 - [✅] Shortcuts help overlay (v3)
+- [✅] Connection quality indicator with latency (v3)
+- [✅] Enhanced notification patterns (v3)

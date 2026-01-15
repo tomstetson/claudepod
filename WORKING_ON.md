@@ -26,12 +26,17 @@ Complete v3 implementation - the complete mobile Claude Code experience
 - [x] View commands in palette (clear, scroll top/bottom)
 - [x] Keyboard shortcuts (Cmd+P, Cmd+K, Cmd+F)
 - [x] Shortcuts help command in palette
-- [x] All 39 tests passing
+- [x] Connection quality indicator (latency-based color)
+- [x] Enhanced notification patterns (30+ Claude prompts)
+- [x] All 42 tests passing
 
 ## Files Modified
-- `public/app.js` — Keyboard shortcuts, view commands, help overlay
+- `server.js` — Ping/pong for latency measurement
+- `public/app.js` — Connection quality tracking
+- `public/style.css` — Quality indicator styles
+- `lib/notifications.js` — Enhanced prompt patterns
 
 ## Next Steps
 1. Output virtualization for very large sessions
-2. Enhanced notification patterns
-3. Connection quality indicator
+2. Session export/import
+3. Multiple terminal themes
