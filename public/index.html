@@ -15,15 +15,24 @@
 </head>
 <body>
   <div id="app">
+    <!-- Offline banner -->
+    <div id="offline-banner" class="offline-banner" role="alert">
+      You're offline. Some features may be unavailable.
+    </div>
+
     <!-- Header -->
     <header class="header">
       <div class="header-left">
         <span class="logo">ClaudePod</span>
+        <span id="connection-status" class="connection-status" title="Disconnected">
+          <span class="status-dot"></span>
+        </span>
       </div>
       <div class="header-right">
         <select id="session-select" class="session-select" aria-label="Select session">
           <option value="">No sessions</option>
         </select>
+        <button id="install-btn" class="btn btn-ghost" style="display: none;" aria-label="Install app">Install</button>
         <button id="new-session-btn" class="btn btn-primary" aria-label="Create new session">+ New</button>
       </div>
     </header>

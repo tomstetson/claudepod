@@ -11,6 +11,8 @@ class ClaudePod {
     this.maxReconnectAttempts = 5;
     this.resizeTimeout = null;
     this.currentDirPath = '';
+    this.refreshInterval = null;
+    this.deferredPrompt = null;
 
     this.init();
   }
@@ -20,7 +22,10 @@ class ClaudePod {
     this.setupEventListeners();
     this.setupModal();
     this.setupDirModal();
+    this.setupOfflineDetection();
+    this.setupInstallPrompt();
     await this.loadSessions();
+    this.startSessionRefresh();
 
     // Register service worker
     if ('serviceWorker' in navigator) {
@@ -169,6 +174,26 @@ class ClaudePod {
       }
       this.lastTap = now;
     }, { passive: false });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      const activeEl = document.activeElement;
+      const isInputFocused = activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT';
+
+      if (isInputFocused) return;
+
+      // Ctrl/Cmd + Shift + N: New session
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'N') {
+        e.preventDefault();
+        this.createNewSession();
+      }
+
+      // Ctrl/Cmd + Shift + K: Kill session
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'K') {
+        e.preventDefault();
+        this.showKillModal();
+      }
+    });
   }
 
   setupModal() {
@@ -434,10 +459,12 @@ class ClaudePod {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/terminal/${sessionName}`;
 
+    this.setConnectionStatus('connecting');
     this.socket = new WebSocket(wsUrl);
 
     this.socket.onopen = () => {
       console.log(`Connected to session: ${sessionName}`);
+      this.setConnectionStatus('connected');
       this.showStatus(`Connected to ${sessionName}`, 'success');
       this.reconnectAttempts = 0;
       this.terminal.focus();
@@ -470,6 +497,7 @@ class ClaudePod {
 
     this.socket.onclose = (event) => {
       console.log(`Disconnected from session: ${sessionName}`, event.code, event.reason);
+      this.setConnectionStatus('disconnected');
 
       if (event.code !== 1000 && event.code !== 4001 && event.code !== 4002) {
         // Abnormal close, try to reconnect
@@ -481,6 +509,7 @@ class ClaudePod {
 
     this.socket.onerror = (err) => {
       console.error('WebSocket error:', err);
+      this.setConnectionStatus('error');
       this.showStatus('Connection error', 'error');
     };
   }
@@ -544,6 +573,88 @@ class ClaudePod {
     this.statusTimeout = setTimeout(() => {
       statusEl.classList.remove('visible');
     }, 3000);
+  }
+
+  setConnectionStatus(status) {
+    const indicator = document.getElementById('connection-status');
+    indicator.className = 'connection-status ' + status;
+    indicator.title = status.charAt(0).toUpperCase() + status.slice(1);
+  }
+
+  setButtonLoading(btn, loading) {
+    if (loading) {
+      btn.classList.add('btn-loading');
+      btn.disabled = true;
+    } else {
+      btn.classList.remove('btn-loading');
+      btn.disabled = false;
+    }
+  }
+
+  setupOfflineDetection() {
+    const banner = document.getElementById('offline-banner');
+
+    const updateOnlineStatus = () => {
+      if (navigator.onLine) {
+        banner.classList.remove('visible');
+      } else {
+        banner.classList.add('visible');
+      }
+    };
+
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+    updateOnlineStatus();
+  }
+
+  setupInstallPrompt() {
+    const installBtn = document.getElementById('install-btn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      this.deferredPrompt = e;
+      installBtn.style.display = 'inline-flex';
+    });
+
+    installBtn.addEventListener('click', async () => {
+      if (!this.deferredPrompt) return;
+
+      this.deferredPrompt.prompt();
+      const { outcome } = await this.deferredPrompt.userChoice;
+
+      if (outcome === 'accepted') {
+        this.showStatus('App installed!', 'success');
+      }
+
+      this.deferredPrompt = null;
+      installBtn.style.display = 'none';
+    });
+
+    window.addEventListener('appinstalled', () => {
+      this.showStatus('ClaudePod installed!', 'success');
+      installBtn.style.display = 'none';
+    });
+  }
+
+  startSessionRefresh() {
+    // Refresh session list every 30 seconds
+    this.refreshInterval = setInterval(() => {
+      this.loadSessions();
+    }, 30000);
+
+    // Also refresh when returning to app
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        this.loadSessions();
+      }
+    });
+  }
+
+  stopSessionRefresh() {
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+      this.refreshInterval = null;
+    }
   }
 
   showEmptyState() {
