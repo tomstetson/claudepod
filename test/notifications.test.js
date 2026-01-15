@@ -27,6 +27,22 @@ describe('notifications.containsPrompt', () => {
   it('should detect Press Enter prompts', () => {
     assert.strictEqual(notifications.containsPrompt('Press Enter to continue'), true);
   });
+
+  it('should detect Claude tool approval prompts', () => {
+    assert.strictEqual(notifications.containsPrompt('Allow this action?'), true);
+    assert.strictEqual(notifications.containsPrompt('Run this command?'), true);
+    assert.strictEqual(notifications.containsPrompt('Proceed with the changes?'), true);
+  });
+
+  it('should detect selection prompts', () => {
+    assert.strictEqual(notifications.containsPrompt('Select an option:'), true);
+    assert.strictEqual(notifications.containsPrompt('Which file would you like to edit?'), true);
+  });
+
+  it('should detect permission prompts', () => {
+    assert.strictEqual(notifications.containsPrompt('Permission to write file'), true);
+    assert.strictEqual(notifications.containsPrompt('Can I create this directory?'), true);
+  });
 });
 
 describe('notifications.clearDebounce', () => {
