@@ -1,6 +1,7 @@
-// ClaudePod Service Worker
+// ClaudePod Service Worker v2
 
-const CACHE_NAME = 'claudepod-v1';
+const CACHE_VERSION = 2;
+const CACHE_NAME = `claudepod-v${CACHE_VERSION}`;
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -16,7 +17,8 @@ const CDN_ASSETS = [
   'https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css',
   'https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js',
   'https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js',
-  'https://cdn.jsdelivr.net/npm/xterm-addon-web-links@0.9.0/lib/xterm-addon-web-links.min.js'
+  'https://cdn.jsdelivr.net/npm/xterm-addon-web-links@0.9.0/lib/xterm-addon-web-links.min.js',
+  'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap'
 ];
 
 // Install: cache static assets
