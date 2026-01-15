@@ -852,9 +852,20 @@ class ClaudePod {
 
     if (!sessionName) return;
 
-    try {
-      this.showStatus(`Ending ${sessionName}...`, 'info');
+    // Save state for potential revert
+    const oldSessions = [...this.sessions];
+    const sessionIndex = this.sessions.findIndex(s => s.name === sessionName);
 
+    // Optimistic update - remove from list immediately
+    this.sessions = this.sessions.filter(s => s.name !== sessionName);
+    this.currentSession = null;
+    this.updateSessionSelect();
+    this.terminal.clear();
+    this.showEmptyState();
+    this.showStatus(`Ended ${sessionName}`, 'success');
+    this.haptic('success');
+
+    try {
       const response = await fetch(`/api/sessions/${sessionName}`, {
         method: 'DELETE'
       });
@@ -863,14 +874,14 @@ class ClaudePod {
         const data = await response.json();
         throw new Error(data.error || 'Failed to end session');
       }
-
-      this.showStatus(`Ended ${sessionName}`, 'success');
-      this.currentSession = null;
-      this.terminal.clear();
-      this.showEmptyState();
-      await this.loadSessions();
     } catch (err) {
+      // Revert on failure
       console.error('Failed to kill session:', err);
+      this.sessions = oldSessions;
+      this.currentSession = sessionName;
+      this.updateSessionSelect();
+      this.connectToSession(sessionName);
+      this.haptic('error');
       this.showStatus(err.message, 'error');
     }
   }
@@ -930,28 +941,40 @@ class ClaudePod {
     }
 
     const session = this.sessions.find(s => s.name === this.currentSession);
-    const currentLabel = session?.label || '';
+    const oldLabel = session?.label || '';
 
-    const newLabel = prompt('Session label (leave empty to clear):', currentLabel);
+    const newLabel = prompt('Session label (leave empty to clear):', oldLabel);
     if (newLabel === null) return; // Cancelled
+
+    const cleanLabel = newLabel.trim() || null;
+
+    // Optimistic update
+    if (session) {
+      session.label = cleanLabel;
+      this.updateSessionSelect();
+    }
+    this.haptic('success');
+    this.showStatus(cleanLabel ? `Label: ${cleanLabel}` : 'Label cleared', 'success');
 
     try {
       const response = await fetch(`/api/sessions/${this.currentSession}/label`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ label: newLabel.trim() })
+        body: JSON.stringify({ label: cleanLabel })
       });
 
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || 'Failed to update label');
       }
-
-      this.haptic('success');
-      this.showStatus(newLabel.trim() ? `Label: ${newLabel.trim()}` : 'Label cleared', 'success');
-      await this.loadSessions();
     } catch (err) {
+      // Revert on failure
       console.error('Failed to update label:', err);
+      if (session) {
+        session.label = oldLabel;
+        this.updateSessionSelect();
+      }
+      this.haptic('error');
       this.showStatus(err.message, 'error');
     }
   }
@@ -963,8 +986,16 @@ class ClaudePod {
     }
 
     const session = this.sessions.find(s => s.name === this.currentSession);
-    const currentEnabled = session?.notifications !== false;
-    const newEnabled = !currentEnabled;
+    const oldEnabled = session?.notifications !== false;
+    const newEnabled = !oldEnabled;
+
+    // Optimistic update
+    if (session) {
+      session.notifications = newEnabled;
+      this.updateSessionSelect();
+    }
+    this.haptic('success');
+    this.showStatus(`Notifications ${newEnabled ? 'enabled' : 'disabled'}`, 'success');
 
     try {
       const response = await fetch(`/api/sessions/${this.currentSession}/notifications`, {
@@ -977,12 +1008,14 @@ class ClaudePod {
         const data = await response.json();
         throw new Error(data.error || 'Failed to toggle notifications');
       }
-
-      this.haptic('success');
-      this.showStatus(`Notifications ${newEnabled ? 'enabled' : 'disabled'}`, 'success');
-      await this.loadSessions();
     } catch (err) {
+      // Revert on failure
       console.error('Failed to toggle notifications:', err);
+      if (session) {
+        session.notifications = oldEnabled;
+        this.updateSessionSelect();
+      }
+      this.haptic('error');
       this.showStatus(err.message, 'error');
     }
   }
