@@ -460,8 +460,23 @@ class ClaudePod {
       items = items.concat(matchingHistory);
     }
 
+    // Build dynamic commands list with context-aware descriptions
+    const commands = CLAUDE_COMMANDS.map(c => {
+      // Make notification command dynamic based on current session state
+      if (c.cmd === '__notifications__' && this.currentSession) {
+        const session = this.sessions.find(s => s.name === this.currentSession);
+        const isEnabled = session?.notifications !== false;
+        return {
+          ...c,
+          desc: isEnabled ? 'Mute notifications' : 'Unmute notifications',
+          display: isEnabled ? '🔕 Mute' : '🔔 Unmute'
+        };
+      }
+      return c;
+    });
+
     // Add matching commands
-    const matchingCmds = CLAUDE_COMMANDS.filter(c =>
+    const matchingCmds = commands.filter(c =>
       c.cmd.toLowerCase().includes(q) ||
       c.desc.toLowerCase().includes(q) ||
       c.category.toLowerCase().includes(q)
