@@ -72,13 +72,22 @@ wss.on('connection', (ws, req) => {
 
   // Spawn pty attached to tmux session
   const tmuxPath = process.env.TMUX_PATH || '/opt/homebrew/bin/tmux';
-  const ptyProcess = pty.spawn(tmuxPath, ['attach', '-t', sessionName], {
-    name: 'xterm-256color',
-    cols: 80,
-    rows: 24,
-    cwd: process.env.HOME,
-    env: process.env
-  });
+  let ptyProcess;
+  try {
+    ptyProcess = pty.spawn(tmuxPath, ['attach', '-t', sessionName], {
+      name: 'xterm-256color',
+      cols: 80,
+      rows: 24,
+      cwd: process.env.HOME,
+      env: process.env
+    });
+  } catch (err) {
+    console.error(`Failed to spawn pty for session ${sessionName}:`, err.message);
+    ws.send(JSON.stringify({ type: 'error', message: `Failed to attach: ${err.message}` }));
+    ws.close(4002, `Failed to spawn PTY: ${err.message}`);
+    activeSessions.get(sessionName)?.delete(ws);
+    return;
+  }
 
   // Buffer for prompt detection
   let outputBuffer = '';
