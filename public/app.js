@@ -20,6 +20,9 @@ const CLAUDE_COMMANDS = [
   { cmd: '__rename__', desc: 'Rename current session', category: 'Session', display: 'Rename' },
   { cmd: '__search__', desc: 'Search terminal output', category: 'Session', display: 'Search' },
   { cmd: '__notifications__', desc: 'Toggle notifications', category: 'Session', display: 'Notifications' },
+  { cmd: '__clear__', desc: 'Clear terminal display', category: 'View', display: 'Clear' },
+  { cmd: '__scroll_top__', desc: 'Scroll to top', category: 'View', display: '↑ Top' },
+  { cmd: '__scroll_bottom__', desc: 'Scroll to bottom', category: 'View', display: '↓ Bottom' },
 ];
 
 class ClaudePod {
@@ -563,6 +566,22 @@ class ClaudePod {
 
     if (item.cmd === '__notifications__') {
       this.toggleNotifications();
+      return;
+    }
+
+    if (item.cmd === '__clear__') {
+      this.terminal.clear();
+      this.showStatus('Terminal cleared', 'info');
+      return;
+    }
+
+    if (item.cmd === '__scroll_top__') {
+      this.terminal.scrollToTop();
+      return;
+    }
+
+    if (item.cmd === '__scroll_bottom__') {
+      this.terminal.scrollToBottom();
       return;
     }
 
