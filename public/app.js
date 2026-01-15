@@ -179,6 +179,10 @@ class ClaudePod {
     this.latency = null;
     this.currentTheme = localStorage.getItem('claudepod_theme') || 'default';
 
+    // Virtual keyboard state tracking for iOS
+    this.keyboardVisible = false;
+    this.viewportHeight = window.innerHeight;
+
     this.init();
   }
 
@@ -258,6 +262,34 @@ class ClaudePod {
         this.fitTerminal();
       }, 150);
     });
+
+    // Virtual keyboard detection for iOS
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', () => {
+        const currentHeight = window.visualViewport.height;
+        const heightDiff = this.viewportHeight - currentHeight;
+
+        // Keyboard is likely open if viewport shrunk by >150px
+        this.keyboardVisible = heightDiff > 150;
+
+        if (this.keyboardVisible) {
+          document.body.classList.add('keyboard-visible');
+          // Scroll input into view
+          const composer = document.getElementById('input-composer');
+          if (document.activeElement === composer) {
+            composer.scrollIntoView({ block: 'end', behavior: 'smooth' });
+          }
+        } else {
+          document.body.classList.remove('keyboard-visible');
+        }
+
+        // Refit terminal
+        this.fitTerminal();
+      });
+
+      // Store initial viewport height
+      this.viewportHeight = window.visualViewport.height;
+    }
 
     // Handle visibility change to refit on return
     document.addEventListener('visibilitychange', () => {
