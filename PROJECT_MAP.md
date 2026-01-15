@@ -86,3 +86,5 @@ ClaudePod/
 - [✅] Connection quality indicator with latency (v3)
 - [✅] Enhanced notification patterns (v3)
 - [✅] Multiple terminal themes (v3)
+- [✅] Copy selection to clipboard (v3)
+- [✅] Session export to file (v3)

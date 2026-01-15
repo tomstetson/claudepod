@@ -29,12 +29,14 @@ Complete v3 implementation - the complete mobile Claude Code experience
 - [x] Connection quality indicator (latency-based color)
 - [x] Enhanced notification patterns (30+ Claude prompts)
 - [x] Multiple terminal themes (5 themes: Default, Dracula, Nord, Solarized, Monokai)
+- [x] Copy selection to clipboard (Cmd+C or palette)
+- [x] Session export to file (Cmd+S or palette)
 - [x] All 42 tests passing
 
 ## Files Modified
-- `public/app.js` — Terminal themes with localStorage persistence
+- `public/app.js` — Copy selection, session export features
 
 ## Next Steps
 1. Output virtualization for very large sessions
-2. Session export/import
-3. Quick theme cycling keyboard shortcut
+2. Session import from file
+3. Multi-session export/backup

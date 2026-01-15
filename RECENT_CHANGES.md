@@ -1,5 +1,17 @@
 # Recent Changes
 
+## 2026-01-15 — v3 Phase 10: Export & Clipboard
+**Files:** public/app.js
+**Why:** Allow users to copy and export session content
+**Changes:**
+- Copy selection to clipboard via command palette or Cmd+C
+- Session export to .txt file via palette or Cmd+S
+- Full terminal buffer export with timestamp in filename
+- Haptic feedback for successful operations
+**Commits:**
+- `feat: add copy selection to clipboard command`
+- `feat: add session export to file feature`
+
 ## 2026-01-15 — v3 Phase 9: Terminal Themes
 **Files:** public/app.js
 **Why:** Customization and visual comfort
