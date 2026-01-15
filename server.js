@@ -42,6 +42,17 @@ app.post('/api/sessions', (req, res) => {
   }
 });
 
+// API: Kill session
+app.delete('/api/sessions/:name', (req, res) => {
+  try {
+    const { name } = req.params;
+    tmux.killSession(name);
+    res.json({ success: true, name });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // WebSocket: Terminal connection
 wss.on('connection', (ws, req) => {
   // Extract session name from URL: /terminal/sessionName

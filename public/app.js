@@ -9,6 +9,7 @@ class ClaudePod {
     this.sessions = [];
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
+    this.resizeTimeout = null;
 
     this.init();
   }
@@ -16,6 +17,7 @@ class ClaudePod {
   async init() {
     this.setupTerminal();
     this.setupEventListeners();
+    this.setupModal();
     await this.loadSessions();
 
     // Register service worker
@@ -33,33 +35,39 @@ class ClaudePod {
     this.terminal = new Terminal({
       cursorBlink: true,
       fontSize: 14,
-      fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+      fontFamily: '"JetBrains Mono", "SF Mono", Menlo, Monaco, "Courier New", monospace',
+      fontWeight: 400,
+      letterSpacing: 0,
+      lineHeight: 1.2,
       theme: {
-        background: '#0f0f1a',
-        foreground: '#e8e8e8',
-        cursor: '#6c63ff',
-        cursorAccent: '#0f0f1a',
-        selectionBackground: 'rgba(108, 99, 255, 0.3)',
-        black: '#1a1a2e',
-        red: '#f87171',
-        green: '#4ade80',
-        yellow: '#fbbf24',
-        blue: '#60a5fa',
-        magenta: '#c084fc',
-        cyan: '#22d3ee',
-        white: '#e8e8e8',
-        brightBlack: '#4a4a6a',
-        brightRed: '#fca5a5',
-        brightGreen: '#86efac',
-        brightYellow: '#fcd34d',
-        brightBlue: '#93c5fd',
-        brightMagenta: '#d8b4fe',
-        brightCyan: '#67e8f9',
+        background: '#0a0a0a',
+        foreground: '#e8e6e3',
+        cursor: '#d97706',
+        cursorAccent: '#0a0a0a',
+        selectionBackground: 'rgba(217, 119, 6, 0.25)',
+        selectionForeground: '#e8e6e3',
+        black: '#1c1c1c',
+        red: '#ef4444',
+        green: '#22c55e',
+        yellow: '#eab308',
+        blue: '#3b82f6',
+        magenta: '#a855f7',
+        cyan: '#06b6d4',
+        white: '#e8e6e3',
+        brightBlack: '#4a4a4a',
+        brightRed: '#f87171',
+        brightGreen: '#4ade80',
+        brightYellow: '#facc15',
+        brightBlue: '#60a5fa',
+        brightMagenta: '#c084fc',
+        brightCyan: '#22d3ee',
         brightWhite: '#ffffff'
       },
       allowTransparency: false,
       scrollback: 5000,
-      tabStopWidth: 4
+      tabStopWidth: 4,
+      convertEol: true,
+      scrollOnUserInput: true
     });
 
     this.fitAddon = new FitAddon.FitAddon();
@@ -70,12 +78,32 @@ class ClaudePod {
 
     const terminalEl = document.getElementById('terminal');
     this.terminal.open(terminalEl);
-    this.fitAddon.fit();
 
-    // Handle resize
+    // Initial fit
+    this.fitTerminal();
+
+    // Handle resize with debounce
+    const resizeObserver = new ResizeObserver(() => {
+      clearTimeout(this.resizeTimeout);
+      this.resizeTimeout = setTimeout(() => {
+        this.fitTerminal();
+      }, 100);
+    });
+    resizeObserver.observe(terminalEl);
+
+    // Also handle window resize for iOS orientation changes
     window.addEventListener('resize', () => {
-      this.fitAddon.fit();
-      this.sendResize();
+      clearTimeout(this.resizeTimeout);
+      this.resizeTimeout = setTimeout(() => {
+        this.fitTerminal();
+      }, 150);
+    });
+
+    // Handle visibility change to refit on return
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        setTimeout(() => this.fitTerminal(), 100);
+      }
     });
 
     // Handle terminal input
@@ -85,6 +113,15 @@ class ClaudePod {
 
     // Show empty state initially
     this.showEmptyState();
+  }
+
+  fitTerminal() {
+    try {
+      this.fitAddon.fit();
+      this.sendResize();
+    } catch (e) {
+      console.warn('Fit failed:', e);
+    }
   }
 
   setupEventListeners() {
@@ -101,8 +138,12 @@ class ClaudePod {
     const newSessionBtn = document.getElementById('new-session-btn');
     newSessionBtn.addEventListener('click', () => this.createNewSession());
 
+    // Kill session button
+    const killSessionBtn = document.getElementById('kill-session-btn');
+    killSessionBtn.addEventListener('click', () => this.showKillModal());
+
     // Quick action buttons
-    document.querySelectorAll('.action-btn').forEach(btn => {
+    document.querySelectorAll('.action-btn:not(#kill-session-btn)').forEach(btn => {
       btn.addEventListener('click', () => {
         const input = btn.dataset.input;
         const key = btn.dataset.key;
@@ -118,12 +159,83 @@ class ClaudePod {
       });
     });
 
-    // Handle visibility change (for notification debouncing)
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && this.currentSession) {
-        // Could notify server that user is active
+    // Prevent iOS zoom on double tap
+    document.addEventListener('touchend', (e) => {
+      const now = Date.now();
+      if (now - this.lastTap < 300) {
+        e.preventDefault();
+      }
+      this.lastTap = now;
+    }, { passive: false });
+  }
+
+  setupModal() {
+    const modal = document.getElementById('kill-modal');
+    const cancelBtn = document.getElementById('modal-cancel');
+    const confirmBtn = document.getElementById('modal-confirm');
+
+    cancelBtn.addEventListener('click', () => this.hideKillModal());
+    confirmBtn.addEventListener('click', () => this.confirmKillSession());
+
+    // Close on overlay click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        this.hideKillModal();
       }
     });
+
+    // Close on Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('visible')) {
+        this.hideKillModal();
+      }
+    });
+  }
+
+  showKillModal() {
+    if (!this.currentSession) {
+      this.showStatus('No active session', 'warning');
+      return;
+    }
+
+    const modal = document.getElementById('kill-modal');
+    const sessionNameEl = document.getElementById('kill-session-name');
+    sessionNameEl.textContent = this.currentSession;
+    modal.classList.add('visible');
+  }
+
+  hideKillModal() {
+    const modal = document.getElementById('kill-modal');
+    modal.classList.remove('visible');
+  }
+
+  async confirmKillSession() {
+    const sessionName = this.currentSession;
+    this.hideKillModal();
+
+    if (!sessionName) return;
+
+    try {
+      this.showStatus(`Ending ${sessionName}...`, 'info');
+
+      const response = await fetch(`/api/sessions/${sessionName}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to end session');
+      }
+
+      this.showStatus(`Ended ${sessionName}`, 'success');
+      this.currentSession = null;
+      this.terminal.clear();
+      this.showEmptyState();
+      await this.loadSessions();
+    } catch (err) {
+      console.error('Failed to kill session:', err);
+      this.showStatus(err.message, 'error');
+    }
   }
 
   async loadSessions() {
@@ -156,7 +268,7 @@ class ClaudePod {
       this.sessions.forEach(session => {
         const option = document.createElement('option');
         option.value = session.name;
-        option.textContent = session.name + (session.attached ? ' (attached)' : '');
+        option.textContent = session.name + (session.attached ? ' •' : '');
         if (session.name === this.currentSession) {
           option.selected = true;
         }
@@ -234,6 +346,11 @@ class ClaudePod {
             this.showStatus(`Session ended (code: ${msg.code})`, 'warning');
             this.loadSessions(); // Refresh session list
             break;
+
+          case 'error':
+            this.showStatus(msg.message || 'Connection error', 'error');
+            this.terminal.write(`\r\n\x1b[31mError: ${msg.message}\x1b[0m\r\n`);
+            break;
         }
       } catch (err) {
         console.error('Invalid message:', err);
@@ -243,7 +360,7 @@ class ClaudePod {
     this.socket.onclose = (event) => {
       console.log(`Disconnected from session: ${sessionName}`, event.code, event.reason);
 
-      if (event.code !== 1000) {
+      if (event.code !== 1000 && event.code !== 4001 && event.code !== 4002) {
         // Abnormal close, try to reconnect
         this.attemptReconnect(sessionName);
       } else {
@@ -312,13 +429,14 @@ class ClaudePod {
     statusEl.className = `status visible ${type}`;
 
     // Auto-hide after 3 seconds
-    setTimeout(() => {
+    clearTimeout(this.statusTimeout);
+    this.statusTimeout = setTimeout(() => {
       statusEl.classList.remove('visible');
     }, 3000);
   }
 
   showEmptyState() {
-    this.terminal.write('\r\n\x1b[90m  No active sessions.\r\n  Click "+ New" to start a Claude session.\x1b[0m\r\n');
+    this.terminal.write('\r\n\x1b[38;2;90;90;90m  No active sessions.\r\n  Tap "+ New" to start a Claude session.\x1b[0m\r\n');
   }
 }
 

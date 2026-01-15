@@ -2,10 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#1a1a2e">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#141414">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ClaudePod">
   <title>ClaudePod</title>
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
@@ -20,28 +21,41 @@
         <span class="logo">ClaudePod</span>
       </div>
       <div class="header-right">
-        <select id="session-select" class="session-select">
+        <select id="session-select" class="session-select" aria-label="Select session">
           <option value="">No sessions</option>
         </select>
-        <button id="new-session-btn" class="btn btn-primary">+ New</button>
+        <button id="new-session-btn" class="btn btn-primary" aria-label="Create new session">+ New</button>
       </div>
     </header>
 
     <!-- Terminal container -->
     <main class="terminal-container">
       <div id="terminal"></div>
-      <div id="status" class="status"></div>
+      <div id="status" class="status" role="status" aria-live="polite"></div>
     </main>
 
     <!-- Quick action buttons -->
     <footer class="quick-actions">
-      <button class="action-btn" data-input="y">Y</button>
-      <button class="action-btn" data-input="n">N</button>
-      <button class="action-btn" data-key="Enter">Enter</button>
-      <button class="action-btn" data-key="Escape">Esc</button>
-      <button class="action-btn" data-key="Tab">Tab</button>
-      <button class="action-btn" data-input="&#x03;">Ctrl+C</button>
+      <button class="action-btn" data-input="y" aria-label="Send Y">Y</button>
+      <button class="action-btn" data-input="n" aria-label="Send N">N</button>
+      <button class="action-btn" data-key="Enter" aria-label="Send Enter">Enter</button>
+      <button class="action-btn" data-key="Escape" aria-label="Send Escape">Esc</button>
+      <button class="action-btn" data-key="Tab" aria-label="Send Tab">Tab</button>
+      <button class="action-btn" data-input="&#x03;" aria-label="Send Ctrl+C">^C</button>
+      <button id="kill-session-btn" class="action-btn danger" aria-label="End session">End</button>
     </footer>
+
+    <!-- Kill confirmation modal -->
+    <div id="kill-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal">
+        <h2 id="modal-title" class="modal-title">End Session?</h2>
+        <p class="modal-message">This will terminate the Claude session <strong id="kill-session-name"></strong>. Any unsaved work will be lost.</p>
+        <div class="modal-actions">
+          <button id="modal-cancel" class="btn btn-ghost">Cancel</button>
+          <button id="modal-confirm" class="btn btn-danger">End Session</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
