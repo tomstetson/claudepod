@@ -13,7 +13,7 @@ const notifications = require('./lib/notifications');
 const sessions = require('./lib/sessions');
 
 // Base projects directory
-const PROJECTS_DIR = process.env.CLAUDEPOD_PROJECTS_DIR || '/Users/tomstetson/Projects';
+const PROJECTS_DIR = process.env.CLAUDEPOD_PROJECTS_DIR || process.env.HOME;
 
 const app = express();
 const server = http.createServer(app);

@@ -1,125 +1,118 @@
 # ClaudePod
 
-Web-based terminal viewer for remotely monitoring and interacting with Claude Code sessions. Access your Claude sessions from your phone via Tailscale.
+A mobile-first PWA for remotely monitoring and interacting with [Claude Code](https://claude.ai/code) sessions. Access your Claude sessions from your phone while away from your desk.
+
+![ClaudePod](https://img.shields.io/badge/PWA-Ready-blue) ![Node](https://img.shields.io/badge/Node-18%2B-green) ![License](https://img.shields.io/badge/License-MIT-yellow)
+
+## Why ClaudePod?
+
+Claude Code runs long tasks that often pause for confirmation. ClaudePod lets you:
+- Monitor sessions from your phone via Tailscale
+- Get push notifications when Claude needs input
+- Quickly respond with Y/N/Enter without typing
+- Switch between multiple Claude sessions
 
 ## Features
 
-### Core
-- View multiple Claude Code sessions running in tmux
-- Switch between sessions seamlessly
-- Create new Claude sessions with directory browser
-- End sessions with confirmation
-- Quick-tap buttons for common inputs (Y/N/Enter/Esc/Tab/Ctrl+C)
+### Terminal
+- Full xterm.js terminal with 256-color support
+- Multiple terminal themes (Default, Dracula, Nord, Solarized, Monokai)
+- Session search (Cmd/Ctrl+F)
+- Copy selection and export session to file
 
-### PWA
-- Installable on your phone's home screen
-- Offline indicator and caching
-- Install prompt handling
-- Session auto-refresh
+### Mobile-First
+- iOS keyboard handling with visualViewport API
+- 44px touch targets (Apple HIG compliant)
+- Swipe gestures to switch sessions
+- Haptic feedback
+- PWA installable on home screen
 
-### Security
-- Helmet security headers
-- Rate limiting on API endpoints
-- WebSocket origin validation
-- Path traversal protection
-- Health check endpoint
-- Graceful shutdown
+### Productivity
+- Command palette (Cmd/Ctrl+P) with fuzzy search
+- Quick action buttons (Y/N/Enter/Esc/Ctrl+C)
+- Session labels and renaming
+- Per-session notification preferences
+- Keyboard shortcuts for power users
 
 ### Notifications
 - Pushover notifications when Claude needs input
 - Smart debouncing (no spam)
+- 30+ Claude-specific prompt patterns detected
 - Only notifies when not actively viewing
-
-### UI/UX
-- Connection status indicator
-- Keyboard shortcuts (Cmd+Shift+N/K)
-- Loading states
-- Industrial terminal aesthetic
 
 ## Prerequisites
 
 - macOS with Node.js 18+
-- tmux installed (`brew install tmux`)
-- Tailscale configured for remote access
-- (Optional) Pushover account for notifications
+- tmux (`brew install tmux`)
+- [Tailscale](https://tailscale.com) for remote access
+- (Optional) [Pushover](https://pushover.net) account for notifications
 
-## Setup
+## Quick Start
 
-1. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+```bash
+# Clone the repo
+git clone https://github.com/yourusername/claudepod.git
+cd claudepod
 
-2. **Configure environment (optional, for notifications):**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your Pushover credentials
-   ```
+# Install dependencies
+npm install
 
-3. **Generate PWA icons:**
+# Start the server
+npm start
+```
 
-   Replace the SVG icon with PNG versions:
-   - `public/icons/icon-192.png` (192x192)
-   - `public/icons/icon-512.png` (512x512)
+Open `http://localhost:3000` in your browser, or access via your Tailscale IP from your phone.
 
-   You can use the included SVG as a template or create your own.
+## Configuration
 
-4. **Start the server:**
-   ```bash
-   npm start
-   ```
+Create a `.env` file (optional):
 
-5. **Access from your phone:**
-   - Find your Mac's Tailscale IP: `tailscale ip -4`
-   - Open `http://<tailscale-ip>:3000` on your phone
-   - Add to home screen for PWA experience
+```bash
+# Directory browser root (defaults to $HOME)
+CLAUDEPOD_PROJECTS_DIR=/path/to/your/projects
+
+# Server port (default: 3000)
+PORT=3000
+
+# Pushover notifications (optional)
+PUSHOVER_APP_TOKEN=your_app_token
+PUSHOVER_USER_KEY=your_user_key
+
+# Custom tmux path (default: /opt/homebrew/bin/tmux)
+TMUX_PATH=/usr/local/bin/tmux
+```
 
 ## Usage
 
-### Creating Claude Sessions
+### Creating Sessions
 
-Click **+ New** to create a new tmux session running Claude Code. Sessions are named `claude1`, `claude2`, etc.
-
-### Managing Sessions Manually
-
-You can also create/manage tmux sessions from your terminal:
-
-```bash
-# Create a new session
-tmux new -s myproject -d 'claude'
-
-# List sessions
-tmux ls
-
-# Attach locally
-tmux attach -t myproject
-
-# Kill a session
-tmux kill-session -t myproject
-```
+Click **+ New** to create a new tmux session running Claude Code. Browse to select a project directory.
 
 ### Quick Actions
 
-The bottom bar has quick-tap buttons for common Claude interactions:
+Bottom bar buttons for common Claude interactions:
 - **Y/N** - Respond to yes/no prompts
-- **Enter** - Confirm prompts
+- **↵** - Send Enter
 - **Esc** - Cancel/escape
-- **Tab** - Tab completion
-- **Ctrl+C** - Interrupt current operation
+- **^C** - Interrupt (Ctrl+C)
+- **/** - Open command palette
 
-## Pushover Notifications
+### Keyboard Shortcuts
 
-To get notified when Claude needs input:
+| Shortcut | Action |
+|----------|--------|
+| Cmd/Ctrl + P | Command palette |
+| Cmd/Ctrl + K | Clear terminal |
+| Cmd/Ctrl + F | Search terminal |
+| Cmd/Ctrl + T | Cycle theme |
+| Cmd/Ctrl + S | Export session |
+| Cmd/Ctrl + O | Import file |
+| Cmd/Ctrl + Shift + N | New session |
+| Cmd/Ctrl + Shift + K | Kill session |
 
-1. Create a Pushover account at https://pushover.net
-2. Create an application to get your API token
-3. Add to `.env`:
-   ```
-   PUSHOVER_APP_TOKEN=your_token
-   PUSHOVER_USER_KEY=your_user_key
-   ```
+### Gestures (Mobile)
 
-Notifications are sent when Claude outputs patterns like `[Y/n]` or `?` and you're not actively viewing that session.
+- **Swipe left/right** - Switch between sessions
 
 ## Architecture
 
@@ -137,6 +130,16 @@ Your Mac                          Your Phone
 └─────────────────────────┘
 ```
 
+## Security
+
+- Helmet.js security headers
+- Rate limiting on API endpoints (100 req/15min)
+- WebSocket origin validation (localhost + private IPs + Tailscale)
+- Path traversal protection
+- No secrets in codebase (env vars only)
+
+**Note:** ClaudePod is designed for trusted local/Tailscale networks. Do not expose directly to the internet.
+
 ## Development
 
 ```bash
@@ -146,28 +149,35 @@ npm run dev
 # Run tests
 npm test
 
-# Run tests in watch mode
-npm run test:watch
+# Run all tests including PTY
+npm run test:all
 
-# Run PTY integration tests
-npm run test:pty
+# Run with process manager (auto-restart)
+npm run start:managed
 ```
 
 ## Troubleshooting
 
 **"No sessions" showing:**
-- Make sure tmux is installed: `which tmux`
+- Ensure tmux is installed: `which tmux`
 - Check if tmux server is running: `tmux ls`
+- Verify TMUX_PATH in .env matches your installation
 
 **Can't connect from phone:**
 - Verify Tailscale is connected on both devices
 - Check firewall allows port 3000
-- Try the Tailscale IP directly, not hostname
+- Use Tailscale IP directly: `tailscale ip -4`
 
 **node-pty build errors:**
-- Ensure Xcode command line tools are installed: `xcode-select --install`
-- Try clearing npm cache: `npm cache clean --force && rm -rf node_modules && npm install`
+- Install Xcode CLI tools: `xcode-select --install`
+- Clear cache: `rm -rf node_modules && npm install`
 
 ## License
 
 MIT
+
+## Acknowledgments
+
+- [xterm.js](https://xtermjs.org/) - Terminal emulator
+- [Hammer.js](https://hammerjs.github.io/) - Touch gestures
+- [Pushover](https://pushover.net/) - Push notifications
