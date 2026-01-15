@@ -1,5 +1,17 @@
 # Recent Changes
 
+## 2026-01-15 — v3 Phase 5: Notification Preferences
+**Files:** lib/sessions.js, server.js, public/app.js, test/server.test.js
+**Why:** Allow users to mute notifications for specific sessions
+**Changes:**
+- Per-session notification toggle via command palette
+- Sessions with notifications disabled show 🔕 indicator
+- Server checks preference before sending Pushover notifications
+- Test suite now at 39 tests
+**Commits:**
+- `feat: add per-session notification preferences`
+- `feat: add muted indicator for sessions with notifications disabled`
+
 ## 2026-01-15 — v3 Phase 3-4: Navigation & Search
 **Files:** lib/sessions.js, server.js, public/app.js, public/index.html, public/sw.js
 **Why:** Enhanced mobile navigation and discoverability

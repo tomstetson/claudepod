@@ -68,7 +68,7 @@ ClaudePod/
 - [✅] Offline detection
 - [✅] Smart reconnection on network restore
 - [✅] Install prompt
-- [✅] Comprehensive test suite (36 tests)
+- [✅] Comprehensive test suite (39 tests)
 - [✅] Text input composer (v3)
 - [✅] Command palette with search (v3)
 - [✅] Command history (v3)
@@ -78,3 +78,4 @@ ClaudePod/
 - [✅] Session labels (v3)
 - [✅] Gesture navigation - swipe between sessions (v3)
 - [✅] Terminal search (v3)
+- [✅] Per-session notification preferences (v3)

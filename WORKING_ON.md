@@ -19,20 +19,17 @@ Complete v3 implementation - the complete mobile Claude Code experience
 - [x] Session labels with rename command
 - [x] Gesture navigation (swipe between sessions)
 - [x] Terminal search via command palette
-- [x] All 36 tests passing
+- [x] Per-session notification preferences
+- [x] Notification status indicator in session dropdown
+- [x] All 39 tests passing
 
 ## Files Modified
-- `server.js` — Added POST /api/directories, PUT /api/sessions/:name/label
-- `lib/sessions.js` — New: session metadata management
-- `public/index.html` — Scroll controls, search addon, Hammer.js
-- `public/app.js` — Gestures, search, session nav, labels
-- `public/style.css` — Scroll controls styles
-- `public/sw.js` — Cache v8 with new dependencies
-- `test/setup.js` — Improved port cleanup
-- `test/server.test.js` — Added label API tests
-- `scripts/start.sh` — Process manager
+- `server.js` — Added notifications toggle API endpoint
+- `lib/sessions.js` — Added notification preference functions
+- `public/app.js` — Notifications toggle, muted indicator
+- `test/server.test.js` — Added notification API tests
 
-## Next Steps (from v3 plan)
-1. Notification preferences (enable/disable per session)
-2. Output virtualization for large sessions
-3. Optimistic UI updates
+## Next Steps
+1. Output virtualization for very large sessions
+2. Optimistic UI updates
+3. Enhanced notification patterns
