@@ -1,14 +1,16 @@
 {
   "name": "claudepod",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Web-based terminal viewer for remote Claude Code interaction",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "start:managed": "bash scripts/start.sh",
     "dev": "node --watch server.js",
     "test": "node --test test/**/*.test.js",
     "test:watch": "node --test --watch test/**/*.test.js",
-    "test:pty": "node test/pty-test.js"
+    "test:pty": "node test/pty-test.js",
+    "test:all": "npm run test && npm run test:pty"
   },
   "keywords": [
     "terminal",
