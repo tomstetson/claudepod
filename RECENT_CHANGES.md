@@ -1,5 +1,38 @@
 # Recent Changes
 
+## 2026-01-15 — v3 Phase 1: Input Experience & Mobile Polish
+**Files:** server.js, public/*, test/*, scripts/start.sh
+**Why:** Major UX improvements for mobile Claude Code experience
+**Changes:**
+- Text input composer with auto-resize textarea
+- Command palette with search and keyboard navigation
+- Command history stored in localStorage
+- Haptic feedback for button presses
+- Font size controls (A-/A+) with persistence
+- Smart network reconnection on coming back online
+- Folder creation from directory browser
+- Process manager script for auto-restart
+- Consolidated and improved test suite (34 tests)
+**Commits:**
+- `feat: implement v3 Phase 1 - input experience overhaul`
+- `feat: add font size controls and smart reconnection`
+- `feat: add folder creation from directory browser`
+- `feat: improve test infrastructure and add process manager`
+
+## 2026-01-15 — v2 Security & Testing
+**Files:** server.js, public/*, test/*
+**Why:** Production hardening and stability
+**Changes:**
+- Added Helmet security headers
+- Rate limiting on API endpoints
+- WebSocket origin validation
+- Health check endpoint
+- Graceful shutdown handling
+- Directory browser completion
+- Comprehensive test suite
+**Commits:**
+- `feat: complete v2 security and testing phase`
+
 ## 2026-01-14 — Initial project creation
 **Files:** All files
 **Why:** Built complete ClaudePod application from scratch

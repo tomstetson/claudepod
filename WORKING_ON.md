@@ -1,34 +1,35 @@
 # Current Focus
-**Date:** 2026-01-14
+**Date:** 2026-01-15
 
 ## Goal
-Initial build of ClaudePod - web terminal for remote Claude Code interaction
+Complete v3 implementation - the complete mobile Claude Code experience
 
-## Progress
-- [x] Design and planning
-- [x] Project structure setup
-- [x] tmux integration library
-- [x] Pushover notification library
-- [x] Express + WebSocket server
-- [x] PWA frontend with xterm.js
-- [x] Service worker and manifest
-- [x] Documentation
-- [ ] Testing end-to-end
-- [ ] Generate PNG icons
+## Completed This Session
+- [x] Fixed test infrastructure (port cleanup, consolidated tests)
+- [x] Added process manager for auto-restart (scripts/start.sh)
+- [x] Added folder creation feature in directory browser
+- [x] Implemented v3 Phase 1: Input Experience
+  - [x] Text input composer with auto-resize
+  - [x] Command palette with search
+  - [x] Command history in localStorage
+  - [x] Haptic feedback (vibration API)
+- [x] Font size controls (A-/A+)
+- [x] Smart network reconnection
+- [x] All 34 tests passing
 
-## Files Created
-- `server.js` — Main server
-- `lib/tmux.js` — tmux management
-- `lib/notifications.js` — Pushover notifications
-- `public/index.html` — PWA shell
-- `public/app.js` — Terminal client
-- `public/style.css` — Mobile styles
-- `public/sw.js` — Service worker
-- `public/manifest.json` — PWA manifest
-- `public/icons/icon-192.svg` — Icon template
+## Files Modified
+- `server.js` — Added POST /api/directories endpoint
+- `public/index.html` — Input composer, palette, font controls
+- `public/app.js` — All v3 Phase 1 features
+- `public/style.css` — Input bar, palette, font control styles
+- `public/sw.js` — Cache v6
+- `test/setup.js` — Improved port cleanup
+- `test/server.test.js` — Consolidated tests, added folder API tests
+- `scripts/start.sh` — New process manager
 
-## Next Steps
-1. Run `npm install` to install dependencies
-2. Test locally with `npm start`
-3. Create actual PNG icons for PWA
-4. Test from phone via Tailscale
+## Next Steps (from v3 plan)
+1. Session labels/descriptions
+2. Session status indicators
+3. Smart scroll buttons
+4. Terminal output search
+5. Gesture support (swipe between sessions)
