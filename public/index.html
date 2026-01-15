@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>ClaudePod</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <span class="logo">ClaudePod</span>
+      </div>
+      <div class="header-right">
+        <select id="session-select" class="session-select">
+          <option value="">No sessions</option>
+        </select>
+        <button id="new-session-btn" class="btn btn-primary">+ New</button>
+      </div>
+    </header>
+
+    <!-- Terminal container -->
+    <main class="terminal-container">
+      <div id="terminal"></div>
+      <div id="status" class="status"></div>
+    </main>
+
+    <!-- Quick action buttons -->
+    <footer class="quick-actions">
+      <button class="action-btn" data-input="y">Y</button>
+      <button class="action-btn" data-input="n">N</button>
+      <button class="action-btn" data-key="Enter">Enter</button>
+      <button class="action-btn" data-key="Escape">Esc</button>
+      <button class="action-btn" data-key="Tab">Tab</button>
+      <button class="action-btn" data-input="&#x03;">Ctrl+C</button>
+    </footer>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xterm-addon-web-links@0.9.0/lib/xterm-addon-web-links.min.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
