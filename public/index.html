@@ -46,13 +46,33 @@
     </footer>
 
     <!-- Kill confirmation modal -->
-    <div id="kill-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div id="kill-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="kill-modal-title">
       <div class="modal">
-        <h2 id="modal-title" class="modal-title">End Session?</h2>
+        <h2 id="kill-modal-title" class="modal-title">End Session?</h2>
         <p class="modal-message">This will terminate the Claude session <strong id="kill-session-name"></strong>. Any unsaved work will be lost.</p>
         <div class="modal-actions">
           <button id="modal-cancel" class="btn btn-ghost">Cancel</button>
           <button id="modal-confirm" class="btn btn-danger">End Session</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Directory browser modal -->
+    <div id="dir-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="dir-modal-title">
+      <div class="modal modal-lg">
+        <h2 id="dir-modal-title" class="modal-title">New Session</h2>
+        <p class="modal-subtitle">Select a project directory</p>
+
+        <div class="dir-browser">
+          <div class="dir-path" id="dir-current-path">/</div>
+          <div class="dir-list" id="dir-list">
+            <div class="dir-loading">Loading...</div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button id="dir-cancel" class="btn btn-ghost">Cancel</button>
+          <button id="dir-select" class="btn btn-primary">Start Here</button>
         </div>
       </div>
     </div>

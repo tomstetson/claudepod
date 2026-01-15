@@ -1,18 +1,49 @@
 require('dotenv/config');
 
 const express = require('express');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const http = require('http');
+const fs = require('fs');
 const { WebSocketServer } = require('ws');
 const path = require('path');
 const pty = require('node-pty');
 const tmux = require('./lib/tmux');
 const notifications = require('./lib/notifications');
 
+// Base projects directory
+const PROJECTS_DIR = process.env.CLAUDEPOD_PROJECTS_DIR || '/Users/tomstetson/Projects';
+
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
 const PORT = process.env.PORT || 3000;
+
+// Security headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "cdn.jsdelivr.net"],
+      styleSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net", "fonts.googleapis.com"],
+      fontSrc: ["'self'", "fonts.gstatic.com"],
+      connectSrc: ["'self'", "ws:", "wss:"],
+      imgSrc: ["'self'", "data:"],
+    },
+  },
+}));
+
+// Rate limiting
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: { error: 'Too many requests, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use('/api/', apiLimiter);
 
 // Track active sessions (which sessions have connected clients)
 const activeSessions = new Map(); // sessionName -> Set of WebSocket clients
@@ -34,11 +65,62 @@ app.get('/api/sessions', (req, res) => {
 // API: Create session
 app.post('/api/sessions', (req, res) => {
   try {
-    const { name } = req.body || {};
-    const sessionName = tmux.createSession(name);
+    const { name, directory } = req.body || {};
+    const sessionName = tmux.createSession(name, directory);
     res.json({ name: sessionName });
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+// API: List directories
+app.get('/api/directories', (req, res) => {
+  try {
+    const relativePath = req.query.path || '';
+
+    // Strict sanitization - remove any path traversal attempts
+    const cleanPath = relativePath
+      .split(/[/\\]+/)
+      .filter(segment => segment && segment !== '.' && segment !== '..')
+      .join('/');
+
+    const fullPath = path.resolve(PROJECTS_DIR, cleanPath);
+
+    // Double-check we're still within PROJECTS_DIR
+    if (!fullPath.startsWith(path.resolve(PROJECTS_DIR))) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Check if path exists
+    if (!fs.existsSync(fullPath)) {
+      return res.status(404).json({ error: 'Directory not found' });
+    }
+
+    const stats = fs.statSync(fullPath);
+    if (!stats.isDirectory()) {
+      return res.status(400).json({ error: 'Not a directory' });
+    }
+
+    // List directory contents
+    const entries = fs.readdirSync(fullPath, { withFileTypes: true })
+      .filter(entry => {
+        // Only show directories, hide hidden files
+        return entry.isDirectory() && !entry.name.startsWith('.');
+      })
+      .map(entry => ({
+        name: entry.name,
+        path: cleanPath ? `${cleanPath}/${entry.name}` : entry.name
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    res.json({
+      current: cleanPath || '/',
+      parent: cleanPath ? path.dirname(cleanPath) || null : null,
+      directories: entries,
+      base: PROJECTS_DIR
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -63,6 +145,22 @@ wss.on('connection', (ws, req) => {
   }
 
   const sessionName = match[1];
+
+  // Validate origin (allow local network and Tailscale)
+  const origin = req.headers.origin;
+  const allowedPatterns = [
+    /^https?:\/\/localhost(:\d+)?$/,
+    /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
+    /^https?:\/\/192\.168\.\d+\.\d+(:\d+)?$/,
+    /^https?:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/,
+    /^https?:\/\/100\.\d+\.\d+\.\d+(:\d+)?$/,  // Tailscale CGNAT range
+  ];
+
+  if (origin && !allowedPatterns.some(p => p.test(origin))) {
+    console.warn(`Rejected WebSocket from origin: ${origin}`);
+    ws.close(4003, 'Invalid origin');
+    return;
+  }
 
   // Check if session exists
   if (!tmux.sessionExists(sessionName)) {
@@ -173,10 +271,43 @@ wss.on('connection', (ws, req) => {
   });
 });
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Catch-all: serve index.html for SPA routing
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
+// Graceful shutdown
+function shutdown(signal) {
+  console.log(`\n${signal} received. Shutting down gracefully...`);
+
+  // Close WebSocket connections
+  wss.clients.forEach(client => {
+    client.close(1001, 'Server shutting down');
+  });
+
+  server.close(() => {
+    console.log('HTTP server closed');
+    process.exit(0);
+  });
+
+  // Force close after 10 seconds
+  setTimeout(() => {
+    console.error('Forced shutdown after timeout');
+    process.exit(1);
+  }, 10000);
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`ClaudePod running at http://0.0.0.0:${PORT}`);
