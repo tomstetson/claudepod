@@ -122,6 +122,41 @@ body {
   gap: 8px;
 }
 
+/* Font controls */
+.font-controls {
+  display: flex;
+  gap: 2px;
+}
+
+.font-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.font-btn:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.font-btn:active {
+  background: var(--accent);
+  color: #000;
+  border-color: var(--accent);
+}
+
 /* Session selector */
 .session-select {
   appearance: none;

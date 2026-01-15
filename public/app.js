@@ -168,6 +168,22 @@ class ClaudePod {
     const newSessionBtn = document.getElementById('new-session-btn');
     newSessionBtn.addEventListener('click', () => this.createNewSession());
 
+    // Font size controls
+    document.getElementById('font-decrease').addEventListener('click', () => {
+      this.haptic('light');
+      this.changeFontSize(-1);
+    });
+    document.getElementById('font-increase').addEventListener('click', () => {
+      this.haptic('light');
+      this.changeFontSize(1);
+    });
+
+    // Load saved font size
+    const savedSize = localStorage.getItem('claudepod_fontsize');
+    if (savedSize) {
+      this.terminal.options.fontSize = parseInt(savedSize);
+    }
+
     // Kill session button
     const killSessionBtn = document.getElementById('kill-session-btn');
     killSessionBtn.addEventListener('click', () => this.showKillModal());
@@ -545,6 +561,18 @@ class ClaudePod {
     };
 
     navigator.vibrate(patterns[type] || patterns.light);
+  }
+
+  // Font size control
+  changeFontSize(delta) {
+    const currentSize = this.terminal.options.fontSize || 14;
+    const newSize = Math.min(Math.max(currentSize + delta, 10), 24);
+
+    this.terminal.options.fontSize = newSize;
+    localStorage.setItem('claudepod_fontsize', newSize);
+    this.fitTerminal();
+
+    this.showStatus(`Font size: ${newSize}px`, 'info');
   }
 
   async loadDirectories(path) {
@@ -939,6 +967,20 @@ class ClaudePod {
     window.addEventListener('online', updateOnlineStatus);
     window.addEventListener('offline', updateOnlineStatus);
     updateOnlineStatus();
+
+    // Smart reconnection on network restore
+    window.addEventListener('online', () => {
+      if (this.currentSession && (!this.socket || this.socket.readyState !== WebSocket.OPEN)) {
+        this.showStatus('Back online, reconnecting...', 'info');
+        setTimeout(() => {
+          this.connectToSession(this.currentSession);
+        }, 500);
+      }
+    });
+
+    window.addEventListener('offline', () => {
+      this.showStatus('You are offline', 'warning');
+    });
   }
 
   setupInstallPrompt() {
