@@ -1,5 +1,18 @@
 # Recent Changes
 
+## 2026-01-15 — v3 Phase 3-4: Navigation & Search
+**Files:** lib/sessions.js, server.js, public/app.js, public/index.html, public/sw.js
+**Why:** Enhanced mobile navigation and discoverability
+**Changes:**
+- Smart scroll buttons (top/bottom) for quick navigation
+- Session labels with rename command in palette
+- Gesture navigation using Hammer.js (swipe left/right)
+- Terminal search using xterm-addon-search
+- Service worker cache updated to v8
+**Commits:**
+- `feat: add scroll controls and session labels`
+- `feat: add gesture navigation and terminal search`
+
 ## 2026-01-15 — v3 Phase 1: Input Experience & Mobile Polish
 **Files:** server.js, public/*, test/*, scripts/start.sh
 **Why:** Major UX improvements for mobile Claude Code experience

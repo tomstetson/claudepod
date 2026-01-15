@@ -15,21 +15,24 @@ Complete v3 implementation - the complete mobile Claude Code experience
   - [x] Haptic feedback (vibration API)
 - [x] Font size controls (A-/A+)
 - [x] Smart network reconnection
-- [x] All 34 tests passing
+- [x] Smart scroll buttons (top/bottom)
+- [x] Session labels with rename command
+- [x] Gesture navigation (swipe between sessions)
+- [x] Terminal search via command palette
+- [x] All 36 tests passing
 
 ## Files Modified
-- `server.js` — Added POST /api/directories endpoint
-- `public/index.html` — Input composer, palette, font controls
-- `public/app.js` — All v3 Phase 1 features
-- `public/style.css` — Input bar, palette, font control styles
-- `public/sw.js` — Cache v6
+- `server.js` — Added POST /api/directories, PUT /api/sessions/:name/label
+- `lib/sessions.js` — New: session metadata management
+- `public/index.html` — Scroll controls, search addon, Hammer.js
+- `public/app.js` — Gestures, search, session nav, labels
+- `public/style.css` — Scroll controls styles
+- `public/sw.js` — Cache v8 with new dependencies
 - `test/setup.js` — Improved port cleanup
-- `test/server.test.js` — Consolidated tests, added folder API tests
-- `scripts/start.sh` — New process manager
+- `test/server.test.js` — Added label API tests
+- `scripts/start.sh` — Process manager
 
 ## Next Steps (from v3 plan)
-1. Session labels/descriptions
-2. Session status indicators
-3. Smart scroll buttons
-4. Terminal output search
-5. Gesture support (swipe between sessions)
+1. Notification preferences (enable/disable per session)
+2. Output virtualization for large sessions
+3. Optimistic UI updates

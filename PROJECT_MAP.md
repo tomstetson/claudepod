@@ -17,12 +17,13 @@ ClaudePod/
 ├── server.js              # Express + WebSocket server
 ├── lib/
 │   ├── tmux.js            # tmux session management
-│   └── notifications.js   # Pushover notification logic
+│   ├── notifications.js   # Pushover notification logic
+│   └── sessions.js        # Session metadata (labels)
 ├── public/
 │   ├── index.html         # PWA shell
 │   ├── app.js             # Frontend terminal client
 │   ├── style.css          # Mobile-first styles
-│   ├── sw.js              # Service worker (cache v6)
+│   ├── sw.js              # Service worker (cache v8)
 │   ├── manifest.json      # PWA manifest
 │   └── icons/             # PWA icons
 ├── test/
@@ -67,9 +68,13 @@ ClaudePod/
 - [✅] Offline detection
 - [✅] Smart reconnection on network restore
 - [✅] Install prompt
-- [✅] Comprehensive test suite (34 tests)
+- [✅] Comprehensive test suite (36 tests)
 - [✅] Text input composer (v3)
 - [✅] Command palette with search (v3)
 - [✅] Command history (v3)
 - [✅] Haptic feedback (v3)
 - [✅] Font size controls (v3)
+- [✅] Smart scroll buttons (v3)
+- [✅] Session labels (v3)
+- [✅] Gesture navigation - swipe between sessions (v3)
+- [✅] Terminal search (v3)
