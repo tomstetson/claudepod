@@ -131,32 +131,35 @@ const TERMINAL_THEMES = {
 
 // Claude commands for the palette
 const CLAUDE_COMMANDS = [
-  { cmd: '/help', desc: 'Show help', category: 'Claude' },
+  // Quick actions (most used on mobile)
+  { cmd: '\x03', desc: 'Cancel current operation', category: 'Quick', display: '^C Interrupt' },
+  { cmd: '\x1b', desc: 'Send escape key', category: 'Quick', display: 'Esc' },
+  { cmd: '__kill__', desc: 'End current session', category: 'Quick', display: 'End Session' },
+  // Claude commands
+  { cmd: '/help', desc: 'Show Claude help', category: 'Claude' },
   { cmd: '/compact', desc: 'Compact conversation', category: 'Claude' },
   { cmd: '/clear', desc: 'Clear conversation', category: 'Claude' },
   { cmd: '/status', desc: 'Show status', category: 'Claude' },
-  { cmd: '/config', desc: 'Show config', category: 'Claude' },
-  { cmd: 'y', desc: 'Yes / Confirm', category: 'Quick' },
-  { cmd: 'n', desc: 'No / Decline', category: 'Quick' },
-  { cmd: '\x03', desc: 'Cancel (Ctrl+C)', category: 'Control', display: '^C' },
-  { cmd: '\x1b', desc: 'Escape', category: 'Control', display: 'Esc' },
-  { cmd: 'git status', desc: 'Show working tree status', category: 'Git' },
+  // Session management
+  { cmd: '__rename__', desc: 'Rename session', category: 'Session', display: 'Rename' },
+  { cmd: '__notifications__', desc: 'Toggle notifications', category: 'Session', display: 'Notifications' },
+  { cmd: '__export__', desc: 'Export to file', category: 'Session', display: 'Export' },
+  // View controls
+  { cmd: '__clear__', desc: 'Clear terminal', category: 'View', display: 'Clear Display' },
+  { cmd: '__scroll_top__', desc: 'Scroll to top', category: 'View', display: 'Top' },
+  { cmd: '__scroll_bottom__', desc: 'Scroll to bottom', category: 'View', display: 'Bottom' },
+  { cmd: '__theme__', desc: 'Change theme', category: 'View', display: 'Theme' },
+  { cmd: '__font_up__', desc: 'Increase font size', category: 'View', display: 'Font +' },
+  { cmd: '__font_down__', desc: 'Decrease font size', category: 'View', display: 'Font -' },
+  { cmd: '__search__', desc: 'Search terminal', category: 'View', display: 'Search' },
+  // Git shortcuts
+  { cmd: 'git status', desc: 'Working tree status', category: 'Git' },
   { cmd: 'git diff', desc: 'Show changes', category: 'Git' },
   { cmd: 'git log --oneline -10', desc: 'Recent commits', category: 'Git' },
+  // Dev shortcuts
   { cmd: 'npm test', desc: 'Run tests', category: 'Dev' },
   { cmd: 'npm run build', desc: 'Build project', category: 'Dev' },
   { cmd: 'ls -la', desc: 'List files', category: 'Dev' },
-  { cmd: '__rename__', desc: 'Rename current session', category: 'Session', display: 'Rename' },
-  { cmd: '__search__', desc: 'Search terminal output', category: 'Session', display: 'Search' },
-  { cmd: '__notifications__', desc: 'Toggle notifications', category: 'Session', display: 'Notifications' },
-  { cmd: '__clear__', desc: 'Clear terminal display', category: 'View', display: 'Clear' },
-  { cmd: '__scroll_top__', desc: 'Scroll to top', category: 'View', display: '↑ Top' },
-  { cmd: '__scroll_bottom__', desc: 'Scroll to bottom', category: 'View', display: '↓ Bottom' },
-  { cmd: '__shortcuts__', desc: 'Show keyboard shortcuts', category: 'Help', display: '⌨ Shortcuts' },
-  { cmd: '__theme__', desc: 'Change terminal theme', category: 'View', display: '🎨 Theme' },
-  { cmd: '__copy__', desc: 'Copy selection to clipboard', category: 'Edit', display: '📋 Copy' },
-  { cmd: '__export__', desc: 'Export session to file', category: 'Session', display: '💾 Export' },
-  { cmd: '__import__', desc: 'Import text from file', category: 'Session', display: '📂 Import' },
 ];
 
 class ClaudePod {
@@ -811,6 +814,21 @@ class ClaudePod {
 
     if (item.cmd === '__import__') {
       this.importFile();
+      return;
+    }
+
+    if (item.cmd === '__kill__') {
+      this.showKillModal();
+      return;
+    }
+
+    if (item.cmd === '__font_up__') {
+      this.changeFontSize(1);
+      return;
+    }
+
+    if (item.cmd === '__font_down__') {
+      this.changeFontSize(-1);
       return;
     }
 
