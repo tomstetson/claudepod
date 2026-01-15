@@ -4,12 +4,37 @@ Web-based terminal viewer for remotely monitoring and interacting with Claude Co
 
 ## Features
 
+### Core
 - View multiple Claude Code sessions running in tmux
-- Switch between sessions
-- Create new Claude sessions
-- Quick-tap buttons for common inputs (Y/N/Enter/Esc)
-- PWA - installable on your phone's home screen
+- Switch between sessions seamlessly
+- Create new Claude sessions with directory browser
+- End sessions with confirmation
+- Quick-tap buttons for common inputs (Y/N/Enter/Esc/Tab/Ctrl+C)
+
+### PWA
+- Installable on your phone's home screen
+- Offline indicator and caching
+- Install prompt handling
+- Session auto-refresh
+
+### Security
+- Helmet security headers
+- Rate limiting on API endpoints
+- WebSocket origin validation
+- Path traversal protection
+- Health check endpoint
+- Graceful shutdown
+
+### Notifications
 - Pushover notifications when Claude needs input
+- Smart debouncing (no spam)
+- Only notifies when not actively viewing
+
+### UI/UX
+- Connection status indicator
+- Keyboard shortcuts (Cmd+Shift+N/K)
+- Loading states
+- Industrial terminal aesthetic
 
 ## Prerequisites
 
@@ -117,6 +142,15 @@ Your Mac                          Your Phone
 ```bash
 # Run with auto-reload
 npm run dev
+
+# Run tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run PTY integration tests
+npm run test:pty
 ```
 
 ## Troubleshooting
