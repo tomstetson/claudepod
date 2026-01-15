@@ -85,3 +85,4 @@ ClaudePod/
 - [✅] Shortcuts help overlay (v3)
 - [✅] Connection quality indicator with latency (v3)
 - [✅] Enhanced notification patterns (v3)
+- [✅] Multiple terminal themes (v3)

@@ -1,5 +1,16 @@
 # Recent Changes
 
+## 2026-01-15 — v3 Phase 9: Terminal Themes
+**Files:** public/app.js
+**Why:** Customization and visual comfort
+**Changes:**
+- 5 terminal themes: Default, Dracula, Nord, Solarized Dark, Monokai
+- Theme selector via command palette (type "theme")
+- Theme preference saved to localStorage
+- Instant theme switching without page reload
+**Commits:**
+- `feat: add multiple terminal themes`
+
 ## 2026-01-15 — v3 Phase 8: Connection Quality & Notifications
 **Files:** server.js, public/app.js, public/style.css, lib/notifications.js, test/notifications.test.js
 **Why:** Better connection visibility and smarter notifications

@@ -28,15 +28,13 @@ Complete v3 implementation - the complete mobile Claude Code experience
 - [x] Shortcuts help command in palette
 - [x] Connection quality indicator (latency-based color)
 - [x] Enhanced notification patterns (30+ Claude prompts)
+- [x] Multiple terminal themes (5 themes: Default, Dracula, Nord, Solarized, Monokai)
 - [x] All 42 tests passing
 
 ## Files Modified
-- `server.js` — Ping/pong for latency measurement
-- `public/app.js` — Connection quality tracking
-- `public/style.css` — Quality indicator styles
-- `lib/notifications.js` — Enhanced prompt patterns
+- `public/app.js` — Terminal themes with localStorage persistence
 
 ## Next Steps
 1. Output virtualization for very large sessions
 2. Session export/import
-3. Multiple terminal themes
+3. Quick theme cycling keyboard shortcut
