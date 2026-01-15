@@ -23,6 +23,7 @@ const CLAUDE_COMMANDS = [
   { cmd: '__clear__', desc: 'Clear terminal display', category: 'View', display: 'Clear' },
   { cmd: '__scroll_top__', desc: 'Scroll to top', category: 'View', display: '↑ Top' },
   { cmd: '__scroll_bottom__', desc: 'Scroll to bottom', category: 'View', display: '↓ Bottom' },
+  { cmd: '__shortcuts__', desc: 'Show keyboard shortcuts', category: 'Help', display: '⌨ Shortcuts' },
 ];
 
 class ClaudePod {
@@ -607,6 +608,11 @@ class ClaudePod {
       return;
     }
 
+    if (item.cmd === '__shortcuts__') {
+      this.showShortcuts();
+      return;
+    }
+
     // For control characters, send directly
     if (item.cmd === '\x03' || item.cmd === '\x1b') {
       this.sendInput(item.cmd);
@@ -716,6 +722,30 @@ class ClaudePod {
     if (prevSession) {
       this.connectToSession(prevSession.name);
     }
+  }
+
+  // Show keyboard shortcuts help
+  showShortcuts() {
+    const shortcuts = [
+      ['⌘/Ctrl + P', 'Command palette'],
+      ['⌘/Ctrl + K', 'Clear terminal'],
+      ['⌘/Ctrl + F', 'Search terminal'],
+      ['⌘/Ctrl + ⇧ + N', 'New session'],
+      ['⌘/Ctrl + ⇧ + K', 'Kill session'],
+      ['Swipe ←/→', 'Switch sessions'],
+    ];
+
+    let output = '\r\n\x1b[1;36m  Keyboard Shortcuts\x1b[0m\r\n';
+    output += '\x1b[38;2;90;90;90m  ─────────────────────────────\x1b[0m\r\n';
+
+    shortcuts.forEach(([key, desc]) => {
+      output += `  \x1b[1;33m${key.padEnd(18)}\x1b[0m ${desc}\r\n`;
+    });
+
+    output += '\x1b[38;2;90;90;90m  ─────────────────────────────\x1b[0m\r\n';
+    output += '  \x1b[38;2;90;90;90mTap "/" for command palette\x1b[0m\r\n';
+
+    this.terminal.write(output);
   }
 
   // Terminal search
