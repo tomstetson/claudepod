@@ -288,6 +288,53 @@ body {
 .status.success { color: var(--success); border-color: var(--success); }
 .status.warning { color: var(--warning); border-color: var(--warning); }
 
+/* ============ SCROLL CONTROLS ============ */
+.scroll-controls {
+  position: absolute;
+  right: 12px;
+  bottom: 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 40;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.scroll-controls:hover {
+  opacity: 1;
+}
+
+.scroll-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.scroll-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+}
+
+.scroll-btn:active {
+  background: var(--accent);
+  color: #000;
+  border-color: var(--accent);
+  transform: scale(0.95);
+}
+
 /* ============ INPUT COMPOSER ============ */
 .input-bar {
   display: flex;

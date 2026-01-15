@@ -17,6 +17,7 @@ const CLAUDE_COMMANDS = [
   { cmd: 'npm test', desc: 'Run tests', category: 'Dev' },
   { cmd: 'npm run build', desc: 'Build project', category: 'Dev' },
   { cmd: 'ls -la', desc: 'List files', category: 'Dev' },
+  { cmd: '__rename__', desc: 'Rename current session', category: 'Session', display: 'Rename' },
 ];
 
 class ClaudePod {
@@ -183,6 +184,16 @@ class ClaudePod {
     if (savedSize) {
       this.terminal.options.fontSize = parseInt(savedSize);
     }
+
+    // Scroll controls
+    document.getElementById('scroll-top').addEventListener('click', () => {
+      this.haptic('light');
+      this.terminal.scrollToTop();
+    });
+    document.getElementById('scroll-bottom').addEventListener('click', () => {
+      this.haptic('light');
+      this.terminal.scrollToBottom();
+    });
 
     // Kill session button
     const killSessionBtn = document.getElementById('kill-session-btn');
@@ -514,6 +525,12 @@ class ClaudePod {
     this.haptic('light');
     this.hidePalette();
 
+    // Handle special commands
+    if (item.cmd === '__rename__') {
+      this.editSessionLabel();
+      return;
+    }
+
     // For control characters, send directly
     if (item.cmd === '\x03' || item.cmd === '\x1b') {
       this.sendInput(item.cmd);
@@ -788,12 +805,48 @@ class ClaudePod {
       this.sessions.forEach(session => {
         const option = document.createElement('option');
         option.value = session.name;
-        option.textContent = session.name + (session.attached ? ' •' : '');
+        // Show label if available, otherwise session name
+        const displayName = session.label || session.name;
+        option.textContent = displayName + (session.attached ? ' •' : '');
+        option.title = session.label ? `${session.name}: ${session.label}` : session.name;
         if (session.name === this.currentSession) {
           option.selected = true;
         }
         select.appendChild(option);
       });
+    }
+  }
+
+  async editSessionLabel() {
+    if (!this.currentSession) {
+      this.showStatus('No active session', 'warning');
+      return;
+    }
+
+    const session = this.sessions.find(s => s.name === this.currentSession);
+    const currentLabel = session?.label || '';
+
+    const newLabel = prompt('Session label (leave empty to clear):', currentLabel);
+    if (newLabel === null) return; // Cancelled
+
+    try {
+      const response = await fetch(`/api/sessions/${this.currentSession}/label`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label: newLabel.trim() })
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to update label');
+      }
+
+      this.haptic('success');
+      this.showStatus(newLabel.trim() ? `Label: ${newLabel.trim()}` : 'Label cleared', 'success');
+      await this.loadSessions();
+    } catch (err) {
+      console.error('Failed to update label:', err);
+      this.showStatus(err.message, 'error');
     }
   }
 

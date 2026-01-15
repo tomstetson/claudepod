@@ -10,6 +10,7 @@ const path = require('path');
 const pty = require('node-pty');
 const tmux = require('./lib/tmux');
 const notifications = require('./lib/notifications');
+const sessions = require('./lib/sessions');
 
 // Base projects directory
 const PROJECTS_DIR = process.env.CLAUDEPOD_PROJECTS_DIR || '/Users/tomstetson/Projects';
@@ -46,8 +47,49 @@ app.use(express.json());
 // API: List sessions
 app.get('/api/sessions', (req, res) => {
   try {
-    const sessions = tmux.listSessions();
-    res.json({ sessions });
+    const tmuxSessions = tmux.listSessions();
+    const meta = sessions.getAllMeta();
+
+    // Enrich sessions with labels
+    const enriched = tmuxSessions.map(s => ({
+      ...s,
+      label: meta[s.name]?.label || null
+    }));
+
+    // Cleanup stale metadata
+    sessions.cleanup(tmuxSessions);
+
+    res.json({ sessions: enriched });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// API: Set session label
+app.put('/api/sessions/:name/label', (req, res) => {
+  try {
+    const { name } = req.params;
+    const { label } = req.body || {};
+
+    // Validate session name
+    if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
+      return res.status(400).json({ error: 'Invalid session name' });
+    }
+
+    // Validate label (allow empty to clear)
+    if (label && typeof label !== 'string') {
+      return res.status(400).json({ error: 'Label must be a string' });
+    }
+
+    const cleanLabel = label ? label.trim().slice(0, 50) : null;
+
+    if (cleanLabel) {
+      sessions.setLabel(name, cleanLabel);
+    } else {
+      sessions.deleteMeta(name);
+    }
+
+    res.json({ success: true, name, label: cleanLabel });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

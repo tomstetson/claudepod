@@ -159,5 +159,27 @@ describe('Server Integration', () => {
         assert.strictEqual(res.status, 400);
       });
     });
+
+    describe('PUT /api/sessions/:name/label', () => {
+      it('should reject invalid session names', async () => {
+        const res = await request('/api/sessions/invalid;name/label', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: { label: 'Test' }
+        });
+        assert.strictEqual(res.status, 400);
+      });
+
+      it('should accept valid label updates', async () => {
+        const res = await request('/api/sessions/test_session/label', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: { label: 'My Project' }
+        });
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.success, true);
+        assert.strictEqual(res.body.label, 'My Project');
+      });
+    });
   });
 });
