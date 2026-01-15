@@ -81,3 +81,5 @@ ClaudePod/
 - [✅] Per-session notification preferences (v3)
 - [✅] Optimistic UI updates (v3)
 - [✅] Dynamic context-aware command palette (v3)
+- [✅] Keyboard shortcuts (Cmd+P/K/F) (v3)
+- [✅] Shortcuts help overlay (v3)

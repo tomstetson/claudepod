@@ -1,5 +1,17 @@
 # Recent Changes
 
+## 2026-01-15 — v3 Phase 7: Keyboard Shortcuts & Help
+**Files:** public/app.js
+**Why:** Power user features and discoverability
+**Changes:**
+- View commands in palette (clear, scroll top/bottom)
+- Keyboard shortcuts: Cmd+P (palette), Cmd+K (clear), Cmd+F (search)
+- Shortcuts help command shows all available shortcuts in terminal
+**Commits:**
+- `feat: add view commands to palette`
+- `feat: add keyboard shortcuts for common actions`
+- `feat: add shortcuts help command to palette`
+
 ## 2026-01-15 — v3 Phase 6: Optimistic UI & Polish
 **Files:** public/app.js
 **Why:** Improve perceived performance and UX polish

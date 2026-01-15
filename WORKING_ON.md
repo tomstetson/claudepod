@@ -23,12 +23,15 @@ Complete v3 implementation - the complete mobile Claude Code experience
 - [x] Notification status indicator in session dropdown
 - [x] Optimistic UI updates (instant feedback, revert on error)
 - [x] Dynamic command palette (mute/unmute shows current state)
+- [x] View commands in palette (clear, scroll top/bottom)
+- [x] Keyboard shortcuts (Cmd+P, Cmd+K, Cmd+F)
+- [x] Shortcuts help command in palette
 - [x] All 39 tests passing
 
 ## Files Modified
-- `public/app.js` — Optimistic UI, dynamic palette commands
+- `public/app.js` — Keyboard shortcuts, view commands, help overlay
 
 ## Next Steps
 1. Output virtualization for very large sessions
 2. Enhanced notification patterns
-3. Keyboard shortcut help overlay
+3. Connection quality indicator
