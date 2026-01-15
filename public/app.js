@@ -10,6 +10,7 @@ class ClaudePod {
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
     this.resizeTimeout = null;
+    this.currentDirPath = '';
 
     this.init();
   }
@@ -18,6 +19,7 @@ class ClaudePod {
     this.setupTerminal();
     this.setupEventListeners();
     this.setupModal();
+    this.setupDirModal();
     await this.loadSessions();
 
     // Register service worker
@@ -192,6 +194,137 @@ class ClaudePod {
     });
   }
 
+  setupDirModal() {
+    const modal = document.getElementById('dir-modal');
+    const cancelBtn = document.getElementById('dir-cancel');
+    const selectBtn = document.getElementById('dir-select');
+    const dirList = document.getElementById('dir-list');
+
+    cancelBtn.addEventListener('click', () => this.hideDirModal());
+    selectBtn.addEventListener('click', () => this.createSessionInDir());
+
+    // Close on overlay click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        this.hideDirModal();
+      }
+    });
+
+    // Close on Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('visible')) {
+        this.hideDirModal();
+      }
+    });
+
+    // Handle directory clicks via delegation
+    dirList.addEventListener('click', (e) => {
+      const item = e.target.closest('.dir-item');
+      if (!item) return;
+
+      const path = item.dataset.path;
+      if (path === '..') {
+        this.loadDirectories(this.currentDirPath.split('/').slice(0, -1).join('/'));
+      } else if (path !== undefined) {
+        this.loadDirectories(path);
+      }
+    });
+  }
+
+  showDirModal() {
+    const modal = document.getElementById('dir-modal');
+    modal.classList.add('visible');
+    this.loadDirectories('');
+  }
+
+  hideDirModal() {
+    const modal = document.getElementById('dir-modal');
+    modal.classList.remove('visible');
+  }
+
+  async loadDirectories(path) {
+    const dirList = document.getElementById('dir-list');
+    const pathDisplay = document.getElementById('dir-current-path');
+
+    dirList.innerHTML = '<div class="dir-loading">Loading...</div>';
+
+    try {
+      const response = await fetch(`/api/directories?path=${encodeURIComponent(path)}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load directories');
+      }
+
+      this.currentDirPath = data.current === '/' ? '' : data.current;
+      pathDisplay.textContent = data.base + (data.current === '/' ? '' : '/' + data.current);
+
+      this.renderDirectories(data);
+    } catch (err) {
+      dirList.innerHTML = `<div class="dir-empty">Error: ${err.message}</div>`;
+    }
+  }
+
+  renderDirectories(data) {
+    const dirList = document.getElementById('dir-list');
+
+    let html = '';
+
+    // Parent directory link
+    if (data.parent !== null) {
+      html += `
+        <div class="dir-item dir-item-back" data-path="..">
+          <span class="dir-item-icon">&#8592;</span>
+          <span class="dir-item-name">..</span>
+        </div>
+      `;
+    }
+
+    // Directory entries
+    if (data.directories.length === 0 && data.parent === null) {
+      html += '<div class="dir-empty">No subdirectories</div>';
+    } else {
+      for (const dir of data.directories) {
+        html += `
+          <div class="dir-item" data-path="${dir.path}">
+            <span class="dir-item-icon">&#128193;</span>
+            <span class="dir-item-name">${dir.name}</span>
+          </div>
+        `;
+      }
+    }
+
+    dirList.innerHTML = html;
+  }
+
+  async createSessionInDir() {
+    this.hideDirModal();
+
+    try {
+      this.showStatus('Creating session...', 'info');
+
+      const response = await fetch('/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ directory: this.currentDirPath })
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to create session');
+      }
+
+      const data = await response.json();
+      this.showStatus(`Created ${data.name}`, 'success');
+
+      await this.loadSessions();
+      this.connectToSession(data.name);
+    } catch (err) {
+      console.error('Failed to create session:', err);
+      this.showStatus(err.message, 'error');
+    }
+  }
+
   showKillModal() {
     if (!this.currentSession) {
       this.showStatus('No active session', 'warning');
@@ -277,30 +410,8 @@ class ClaudePod {
     }
   }
 
-  async createNewSession() {
-    try {
-      this.showStatus('Creating session...', 'info');
-
-      const response = await fetch('/api/sessions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to create session');
-      }
-
-      const data = await response.json();
-      this.showStatus(`Created ${data.name}`, 'success');
-
-      // Refresh sessions and connect to new one
-      await this.loadSessions();
-      this.connectToSession(data.name);
-    } catch (err) {
-      console.error('Failed to create session:', err);
-      this.showStatus(err.message, 'error');
-    }
+  createNewSession() {
+    this.showDirModal();
   }
 
   connectToSession(sessionName) {
