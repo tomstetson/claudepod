@@ -155,6 +155,7 @@ const CLAUDE_COMMANDS = [
   { cmd: '__shortcuts__', desc: 'Show keyboard shortcuts', category: 'Help', display: '⌨ Shortcuts' },
   { cmd: '__theme__', desc: 'Change terminal theme', category: 'View', display: '🎨 Theme' },
   { cmd: '__copy__', desc: 'Copy selection to clipboard', category: 'Edit', display: '📋 Copy' },
+  { cmd: '__export__', desc: 'Export session to file', category: 'Session', display: '💾 Export' },
 ];
 
 class ClaudePod {
@@ -399,6 +400,12 @@ class ClaudePod {
       if ((e.ctrlKey || e.metaKey) && e.key === 't') {
         e.preventDefault();
         this.cycleTheme();
+      }
+
+      // Ctrl/Cmd + S: Export session
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        this.exportSession();
       }
     });
   }
@@ -742,6 +749,11 @@ class ClaudePod {
       return;
     }
 
+    if (item.cmd === '__export__') {
+      this.exportSession();
+      return;
+    }
+
     // For control characters, send directly
     if (item.cmd === '\x03' || item.cmd === '\x1b') {
       this.sendInput(item.cmd);
@@ -861,6 +873,7 @@ class ClaudePod {
       ['⌘/Ctrl + F', 'Search terminal'],
       ['⌘/Ctrl + T', 'Cycle theme'],
       ['⌘/Ctrl + C', 'Copy selection'],
+      ['⌘/Ctrl + S', 'Export session'],
       ['⌘/Ctrl + ⇧ + N', 'New session'],
       ['⌘/Ctrl + ⇧ + K', 'Kill session'],
       ['Swipe ←/→', 'Switch sessions'],
@@ -950,6 +963,48 @@ class ClaudePod {
     } catch (err) {
       console.error('Failed to copy:', err);
       this.showStatus('Copy failed', 'error');
+    }
+  }
+
+  // Export session to file
+  exportSession() {
+    if (!this.terminal || !this.currentSession) {
+      this.showStatus('No session to export', 'error');
+      return;
+    }
+
+    try {
+      // Get full buffer content
+      const buffer = this.terminal.buffer.active;
+      const lines = [];
+
+      for (let i = 0; i < buffer.length; i++) {
+        const line = buffer.getLine(i);
+        if (line) {
+          lines.push(line.translateToString(true));
+        }
+      }
+
+      const content = lines.join('\n');
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = `${this.currentSession}-${timestamp}.txt`;
+
+      // Create download
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      this.haptic('success');
+      this.showStatus(`Exported to ${filename}`, 'success');
+    } catch (err) {
+      console.error('Export failed:', err);
+      this.showStatus('Export failed', 'error');
     }
   }
 
