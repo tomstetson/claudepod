@@ -19,6 +19,7 @@ const CLAUDE_COMMANDS = [
   { cmd: 'ls -la', desc: 'List files', category: 'Dev' },
   { cmd: '__rename__', desc: 'Rename current session', category: 'Session', display: 'Rename' },
   { cmd: '__search__', desc: 'Search terminal output', category: 'Session', display: 'Search' },
+  { cmd: '__notifications__', desc: 'Toggle notifications', category: 'Session', display: 'Notifications' },
 ];
 
 class ClaudePod {
@@ -545,6 +546,11 @@ class ClaudePod {
       return;
     }
 
+    if (item.cmd === '__notifications__') {
+      this.toggleNotifications();
+      return;
+    }
+
     // For control characters, send directly
     if (item.cmd === '\x03' || item.cmd === '\x1b') {
       this.sendInput(item.cmd);
@@ -940,6 +946,37 @@ class ClaudePod {
       await this.loadSessions();
     } catch (err) {
       console.error('Failed to update label:', err);
+      this.showStatus(err.message, 'error');
+    }
+  }
+
+  async toggleNotifications() {
+    if (!this.currentSession) {
+      this.showStatus('No active session', 'warning');
+      return;
+    }
+
+    const session = this.sessions.find(s => s.name === this.currentSession);
+    const currentEnabled = session?.notifications !== false;
+    const newEnabled = !currentEnabled;
+
+    try {
+      const response = await fetch(`/api/sessions/${this.currentSession}/notifications`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: newEnabled })
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to toggle notifications');
+      }
+
+      this.haptic('success');
+      this.showStatus(`Notifications ${newEnabled ? 'enabled' : 'disabled'}`, 'success');
+      await this.loadSessions();
+    } catch (err) {
+      console.error('Failed to toggle notifications:', err);
       this.showStatus(err.message, 'error');
     }
   }

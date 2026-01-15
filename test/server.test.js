@@ -181,5 +181,37 @@ describe('Server Integration', () => {
         assert.strictEqual(res.body.label, 'My Project');
       });
     });
+
+    describe('PUT /api/sessions/:name/notifications', () => {
+      it('should reject invalid session names', async () => {
+        const res = await request('/api/sessions/invalid;name/notifications', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: { enabled: true }
+        });
+        assert.strictEqual(res.status, 400);
+      });
+
+      it('should require enabled boolean', async () => {
+        const res = await request('/api/sessions/test_session/notifications', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: { enabled: 'not-boolean' }
+        });
+        assert.strictEqual(res.status, 400);
+        assert.ok(res.body.error.includes('boolean'));
+      });
+
+      it('should accept valid notification toggle', async () => {
+        const res = await request('/api/sessions/test_session/notifications', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: { enabled: false }
+        });
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.success, true);
+        assert.strictEqual(res.body.notifications, false);
+      });
+    });
   });
 });

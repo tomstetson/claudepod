@@ -50,10 +50,11 @@ app.get('/api/sessions', (req, res) => {
     const tmuxSessions = tmux.listSessions();
     const meta = sessions.getAllMeta();
 
-    // Enrich sessions with labels
+    // Enrich sessions with labels and notification settings
     const enriched = tmuxSessions.map(s => ({
       ...s,
-      label: meta[s.name]?.label || null
+      label: meta[s.name]?.label || null,
+      notifications: meta[s.name]?.notifications !== false
     }));
 
     // Cleanup stale metadata
@@ -90,6 +91,30 @@ app.put('/api/sessions/:name/label', (req, res) => {
     }
 
     res.json({ success: true, name, label: cleanLabel });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// API: Toggle notifications for a session
+app.put('/api/sessions/:name/notifications', (req, res) => {
+  try {
+    const { name } = req.params;
+    const { enabled } = req.body || {};
+
+    // Validate session name
+    if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
+      return res.status(400).json({ error: 'Invalid session name' });
+    }
+
+    // Validate enabled flag
+    if (typeof enabled !== 'boolean') {
+      return res.status(400).json({ error: 'enabled must be a boolean' });
+    }
+
+    sessions.setNotifications(name, enabled);
+
+    res.json({ success: true, name, notifications: enabled });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -306,7 +331,11 @@ wss.on('connection', (ws, req) => {
     // Check if this session is being actively viewed
     const viewers = activeSessions.get(sessionName);
     const isActive = viewers && viewers.size > 0;
-    notifications.checkAndNotify(sessionName, outputBuffer, isActive);
+
+    // Only send notifications if enabled for this session
+    if (sessions.getNotifications(sessionName)) {
+      notifications.checkAndNotify(sessionName, outputBuffer, isActive);
+    }
   });
 
   ptyProcess.onExit(({ exitCode }) => {
