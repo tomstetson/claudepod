@@ -369,7 +369,7 @@ export class VirtualGrid {
     this.cursorY = Math.min(this.cursorY, rows - 1);
 
     // Adjust existing lines
-    for (const [lineIndex, line] of this.lines) {
+    for (const [, line] of this.lines) {
       while (line.length < cols) {
         line.push(this.allocateCell());
       }

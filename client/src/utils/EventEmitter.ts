@@ -1,10 +1,11 @@
 /**
  * Type-safe event emitter for component communication
  */
-export type EventMap = Record<string, unknown>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type EventMap = { [key: string]: any };
 export type EventCallback<T> = (data: T) => void;
 
-export class EventEmitter<Events extends EventMap> {
+export class EventEmitter<Events extends EventMap = EventMap> {
   private listeners = new Map<keyof Events, Set<EventCallback<unknown>>>();
 
   on<K extends keyof Events>(event: K, callback: EventCallback<Events[K]>): () => void {
@@ -21,7 +22,11 @@ export class EventEmitter<Events extends EventMap> {
     this.listeners.get(event)?.delete(callback as EventCallback<unknown>);
   }
 
-  emit<K extends keyof Events>(event: K, data: Events[K]): void {
+  emit<K extends keyof Events>(
+    event: K,
+    ...args: Events[K] extends void ? [] : [data: Events[K]]
+  ): void {
+    const data = args[0];
     this.listeners.get(event)?.forEach(callback => {
       try {
         callback(data);

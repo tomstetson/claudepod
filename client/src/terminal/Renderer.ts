@@ -9,8 +9,7 @@
  * - Theme support with 256-color palette
  */
 
-import { VirtualGrid, Cell, CellAttrs, DEFAULT_FG, DEFAULT_BG } from './VirtualGrid';
-import { ANSI_COLORS } from './ANSIParser';
+import { VirtualGrid, DEFAULT_FG, DEFAULT_BG } from './VirtualGrid';
 import { EventEmitter } from '../utils/EventEmitter';
 
 export interface TerminalTheme {
@@ -101,7 +100,7 @@ export class Renderer extends EventEmitter<RendererEvents> {
 
   // Cursor state
   private cursorVisible = true;
-  private cursorBlink = false;
+  private _cursorBlinking = false;
   private cursorBlinkInterval: number | null = null;
 
   // Selection state
@@ -551,7 +550,7 @@ export class Renderer extends EventEmitter<RendererEvents> {
   startCursorBlink(): void {
     if (this.cursorBlinkInterval) return;
 
-    this.cursorBlink = true;
+    this._cursorBlinking = true;
     this.cursorBlinkInterval = window.setInterval(() => {
       this.cursorVisible = !this.cursorVisible;
       this.markAllDirty();
@@ -567,7 +566,7 @@ export class Renderer extends EventEmitter<RendererEvents> {
       this.cursorBlinkInterval = null;
     }
     this.cursorVisible = true;
-    this.cursorBlink = false;
+    this._cursorBlinking = false;
   }
 
   /**

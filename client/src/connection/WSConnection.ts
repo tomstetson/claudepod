@@ -70,7 +70,6 @@ export class WSConnection extends EventEmitter<WSConnectionEvents> {
 
   // Idle detection
   private idleTimer: number | null = null;
-  private lastActivity: number = Date.now();
 
   // Visibility handling
   private isVisible = !document.hidden;
@@ -312,7 +311,6 @@ export class WSConnection extends EventEmitter<WSConnectionEvents> {
   }
 
   private resetIdleTimer(): void {
-    this.lastActivity = Date.now();
     this.stopIdleTimer();
 
     if (this.options.idleTimeout > 0) {

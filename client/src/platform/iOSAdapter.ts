@@ -14,8 +14,7 @@ import {
   KeyboardState,
   HapticType,
   SafeAreaInsets,
-  isStandalone,
-  hasTouchScreen
+  isStandalone
 } from './PlatformAdapter';
 
 export class iOSAdapter implements PlatformAdapter {
@@ -326,7 +325,8 @@ export class iOSAdapter implements PlatformAdapter {
 
   configureScroll(element: HTMLElement): void {
     // Enable smooth momentum scrolling
-    element.style.webkitOverflowScrolling = 'touch';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (element.style as any).webkitOverflowScrolling = 'touch';
     element.style.overscrollBehavior = 'contain';
 
     // Prevent rubber-banding at edges

@@ -280,7 +280,7 @@ export class ANSIParser {
     this.state = ParserState.OSCString;
   }
 
-  private handleDCS(char: string, code: number): void {
+  private handleDCS(_char: string, code: number): void {
     // DCS sequences end with ST (ESC \) or BEL
     if (code === 0x07) {
       this.state = ParserState.Ground;
@@ -441,8 +441,6 @@ export class ANSIParser {
   }
 
   private executePrivateCSI(final: string, params: number[]): void {
-    const p0 = params[0] ?? 0;
-
     switch (final) {
       case 'h': // DECSET - DEC Private Mode Set
         this.handleDECSET(params, true);
@@ -461,7 +459,7 @@ export class ANSIParser {
     }
   }
 
-  private handleDECSET(params: number[], set: boolean): void {
+  private handleDECSET(params: number[], _set: boolean): void {
     for (const param of params) {
       switch (param) {
         case 1: // DECCKM - Cursor Keys Mode
@@ -658,7 +656,7 @@ export class ANSIParser {
     if (colonIndex === -1) return;
 
     const command = parseInt(this.oscString.slice(0, colonIndex), 10);
-    const data = this.oscString.slice(colonIndex + 1);
+    const _data = this.oscString.slice(colonIndex + 1);
 
     switch (command) {
       case 0: // Set window title and icon name

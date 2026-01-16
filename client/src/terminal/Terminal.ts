@@ -491,4 +491,5 @@ export class Terminal extends EventEmitter<TerminalEvents> {
 }
 
 // Re-export types
-export { TerminalTheme, DEFAULT_THEME };
+export type { TerminalTheme };
+export { DEFAULT_THEME };
