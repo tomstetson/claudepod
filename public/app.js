@@ -492,9 +492,18 @@ class ClaudePod {
     const cancelBtn = document.getElementById('dir-cancel');
     const selectBtn = document.getElementById('dir-select');
     const dirList = document.getElementById('dir-list');
+    const upBtn = document.getElementById('dir-up');
+    const recentContainer = document.getElementById('dir-recent');
 
     cancelBtn.addEventListener('click', () => this.hideDirModal());
     selectBtn.addEventListener('click', () => this.createSessionInDir());
+
+    // Up button handler
+    upBtn.addEventListener('click', () => {
+      if (this.currentDirPath) {
+        this.loadDirectories(this.currentDirPath.split('/').slice(0, -1).join('/'));
+      }
+    });
 
     // Close on overlay click
     modal.addEventListener('click', (e) => {
@@ -528,13 +537,63 @@ class ClaudePod {
         this.loadDirectories(path);
       }
     });
+
+    // Handle recent folder clicks
+    recentContainer.addEventListener('click', (e) => {
+      const item = e.target.closest('.dir-recent-item');
+      if (item && item.dataset.path !== undefined) {
+        this.loadDirectories(item.dataset.path);
+      }
+    });
   }
 
   showDirModal() {
     this.lockScroll();
     const modal = document.getElementById('dir-modal');
     modal.classList.add('visible');
+    this.renderRecentFolders();
     this.loadDirectories('');
+  }
+
+  // Folder history management
+  getFolderHistory() {
+    try {
+      return JSON.parse(localStorage.getItem('claudepod_folder_history') || '[]');
+    } catch {
+      return [];
+    }
+  }
+
+  addToFolderHistory(path) {
+    if (!path) return; // Don't save root
+    const history = this.getFolderHistory();
+    // Remove if exists, add to front
+    const filtered = history.filter(h => h !== path);
+    filtered.unshift(path);
+    // Keep last 5
+    localStorage.setItem('claudepod_folder_history', JSON.stringify(filtered.slice(0, 5)));
+  }
+
+  renderRecentFolders() {
+    const container = document.getElementById('dir-recent');
+    const history = this.getFolderHistory();
+
+    if (history.length === 0) {
+      container.innerHTML = '';
+      return;
+    }
+
+    let html = '<div class="dir-recent-header">Recent</div>';
+    for (const path of history) {
+      const name = path.split('/').pop() || path;
+      html += `
+        <div class="dir-recent-item" data-path="${this.escapeHtml(path)}">
+          <span class="dir-item-icon">&#128337;</span>
+          <span class="dir-item-name">${this.escapeHtml(name)}</span>
+        </div>
+      `;
+    }
+    container.innerHTML = html;
   }
 
   hideDirModal() {
@@ -1173,6 +1232,7 @@ class ClaudePod {
   async loadDirectories(path) {
     const dirList = document.getElementById('dir-list');
     const pathDisplay = document.getElementById('dir-current-path');
+    const upBtn = document.getElementById('dir-up');
 
     dirList.innerHTML = '<div class="dir-loading">Loading...</div>';
 
@@ -1194,6 +1254,9 @@ class ClaudePod {
 
       this.currentDirPath = data.current === '/' ? '' : data.current;
       pathDisplay.textContent = data.base + (data.current === '/' ? '' : '/' + data.current);
+
+      // Update up button state
+      upBtn.disabled = data.parent === null;
 
       this.renderDirectories(data);
     } catch (err) {
@@ -1280,6 +1343,9 @@ class ClaudePod {
   }
 
   async createSessionInDir() {
+    const skipPermissions = document.getElementById('skip-permissions-toggle').checked;
+    const directory = this.currentDirPath;
+
     this.hideDirModal();
 
     try {
@@ -1288,7 +1354,7 @@ class ClaudePod {
       const response = await fetch('/api/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ directory: this.currentDirPath })
+        body: JSON.stringify({ directory, skipPermissions })
       });
 
       if (!response.ok) {
@@ -1297,6 +1363,10 @@ class ClaudePod {
       }
 
       const data = await response.json();
+
+      // Save folder to history on successful creation
+      this.addToFolderHistory(directory);
+
       this.showStatus(`Created ${data.name}`, 'success');
 
       await this.loadSessions();

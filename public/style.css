@@ -507,6 +507,104 @@ body.scroll-locked {
   font-size: 12px;
 }
 
+/* Directory navigation bar */
+.dir-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+}
+
+.dir-up-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.dir-nav .dir-path {
+  flex: 1;
+  padding: 0;
+  background: none;
+  border: none;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Recent folders section */
+.dir-recent {
+  border-bottom: 1px solid var(--border);
+}
+
+.dir-recent:empty {
+  display: none;
+}
+
+.dir-recent-header {
+  padding: 6px 10px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: var(--bg-secondary);
+}
+
+.dir-recent-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.dir-recent-item:last-child {
+  border-bottom: none;
+}
+
+.dir-recent-item:active {
+  background: var(--accent-dim);
+}
+
+.dir-recent-item .dir-item-icon {
+  color: var(--accent);
+  opacity: 0.7;
+}
+
+.dir-recent-item .dir-item-name {
+  font-size: 12px;
+}
+
+/* Options section */
+.dir-options {
+  margin-bottom: 16px;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 8px 0;
+}
+
+.toggle-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.toggle-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
 /* ============ COMMAND PALETTE ============ */
 .palette-modal {
   max-width: 340px;

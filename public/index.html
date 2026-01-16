@@ -100,10 +100,21 @@
         <p class="modal-subtitle">Select a project directory</p>
 
         <div class="dir-browser">
-          <div class="dir-path" id="dir-current-path">/</div>
+          <div class="dir-nav">
+            <button id="dir-up" class="btn btn-ghost dir-up-btn" aria-label="Go up one level">↑ Up</button>
+            <div class="dir-path" id="dir-current-path">/</div>
+          </div>
+          <div id="dir-recent" class="dir-recent"></div>
           <div class="dir-list" id="dir-list">
             <div class="dir-loading">Loading...</div>
           </div>
+        </div>
+
+        <div class="dir-options">
+          <label class="toggle-label">
+            <input type="checkbox" id="skip-permissions-toggle">
+            <span class="toggle-text">Skip permissions (--dangerously-skip-permissions)</span>
+          </label>
         </div>
 
         <div class="modal-actions">

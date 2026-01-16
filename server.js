@@ -123,8 +123,8 @@ app.put('/api/sessions/:name/notifications', (req, res) => {
 // API: Create session
 app.post('/api/sessions', (req, res) => {
   try {
-    const { name, directory } = req.body || {};
-    const sessionName = tmux.createSession(name, directory);
+    const { name, directory, skipPermissions } = req.body || {};
+    const sessionName = tmux.createSession(name, directory, { skipPermissions: !!skipPermissions });
     res.json({ name: sessionName });
   } catch (err) {
     res.status(400).json({ error: err.message });
