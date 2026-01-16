@@ -279,11 +279,12 @@ wss.on('connection', (ws, req) => {
 
   // Check if session exists
   if (!tmux.sessionExists(sessionName)) {
+    console.log(`Session not found: ${sessionName}`);
     ws.close(4001, `Session "${sessionName}" not found`);
     return;
   }
 
-  console.log(`Client connected to session: ${sessionName}`);
+  console.log(`Client connected to session: ${sessionName} from origin: ${origin || 'none'}`);
 
   // Track this as an active session
   if (!activeSessions.has(sessionName)) {
@@ -298,6 +299,7 @@ wss.on('connection', (ws, req) => {
   const tmuxPath = process.env.TMUX_PATH || '/opt/homebrew/bin/tmux';
   let ptyProcess;
   try {
+    console.log(`Spawning PTY for session ${sessionName}...`);
     ptyProcess = pty.spawn(tmuxPath, ['attach', '-t', sessionName], {
       name: 'xterm-256color',
       cols: 80,
@@ -305,6 +307,7 @@ wss.on('connection', (ws, req) => {
       cwd: process.env.HOME,
       env: process.env
     });
+    console.log(`PTY spawned for session ${sessionName}, PID: ${ptyProcess.pid}`);
   } catch (err) {
     console.error(`Failed to spawn pty for session ${sessionName}:`, err.message);
     ws.send(JSON.stringify({ type: 'error', message: `Failed to attach: ${err.message}` }));
@@ -315,9 +318,14 @@ wss.on('connection', (ws, req) => {
 
   // Buffer for prompt detection
   let outputBuffer = '';
+  let dataEventCount = 0;
 
   // Send terminal output to WebSocket
   ptyProcess.onData((data) => {
+    dataEventCount++;
+    if (dataEventCount <= 3) {
+      console.log(`PTY data event #${dataEventCount} for ${sessionName}, ws.readyState: ${ws.readyState}`);
+    }
     if (ws.readyState === ws.OPEN) {
       ws.send(JSON.stringify({ type: 'output', data }));
     }
@@ -338,8 +346,8 @@ wss.on('connection', (ws, req) => {
     }
   });
 
-  ptyProcess.onExit(({ exitCode }) => {
-    console.log(`PTY exited for session ${sessionName} with code ${exitCode}`);
+  ptyProcess.onExit(({ exitCode, signal }) => {
+    console.log(`PTY exited for session ${sessionName} with code ${exitCode}, signal ${signal}, dataEvents: ${dataEventCount}`);
     if (ws.readyState === ws.OPEN) {
       ws.send(JSON.stringify({ type: 'exit', code: exitCode }));
       ws.close(1000, 'Session ended');
@@ -373,8 +381,8 @@ wss.on('connection', (ws, req) => {
   });
 
   // Cleanup on disconnect
-  ws.on('close', () => {
-    console.log(`Client disconnected from session: ${sessionName}`);
+  ws.on('close', (code, reason) => {
+    console.log(`Client disconnected from session: ${sessionName} (code: ${code}, reason: ${reason || 'none'})`);
 
     // Remove from active sessions
     const viewers = activeSessions.get(sessionName);
@@ -386,12 +394,16 @@ wss.on('connection', (ws, req) => {
     }
 
     // Kill the pty process (detaches from tmux, doesn't kill the session)
-    ptyProcess.kill();
+    if (ptyProcess) {
+      ptyProcess.kill();
+    }
   });
 
   ws.on('error', (err) => {
     console.error(`WebSocket error for session ${sessionName}:`, err.message);
-    ptyProcess.kill();
+    if (ptyProcess) {
+      ptyProcess.kill();
+    }
   });
 });
 

@@ -973,10 +973,20 @@ class ClaudePod {
     }
 
     const terminalEl = document.getElementById('terminal');
-    const hammer = new Hammer(terminalEl);
+    const hammer = new Hammer(terminalEl, {
+      // Allow native scrolling for vertical direction
+      touchAction: 'pan-y'
+    });
 
-    // Configure swipe
-    hammer.get('swipe').set({ direction: Hammer.DIRECTION_HORIZONTAL });
+    // Configure swipe for horizontal only
+    hammer.get('swipe').set({
+      direction: Hammer.DIRECTION_HORIZONTAL,
+      threshold: 50,  // Require larger swipe to trigger
+      velocity: 0.5   // Require faster swipe
+    });
+
+    // Disable pan to not interfere with scrolling
+    hammer.get('pan').set({ enable: false });
 
     // Swipe left = next session
     hammer.on('swipeleft', () => {
@@ -1575,14 +1585,16 @@ class ClaudePod {
   }
 
   connectToSession(sessionName) {
-    // Close existing connection
+    // Close existing connection with proper code to prevent reconnection
     if (this.socket) {
-      this.socket.close();
+      this.intentionalClose = true;  // Flag to prevent reconnection
+      this.socket.close(1000, 'Switching session');
       this.socket = null;
     }
 
     this.currentSession = sessionName;
     this.reconnectAttempts = 0;
+    this.intentionalClose = false;  // Reset flag for new connection
     this.terminal.clear();
     this.showStatus(`Connecting to ${sessionName}...`, 'info');
 
@@ -1625,7 +1637,9 @@ class ClaudePod {
 
         switch (msg.type) {
           case 'output':
-            this.terminal.write(msg.data);
+            if (this.terminal) {
+              this.terminal.write(msg.data);
+            }
             break;
 
           case 'exit':
@@ -1635,7 +1649,9 @@ class ClaudePod {
 
           case 'error':
             this.showStatus(msg.message || 'Connection error', 'error');
-            this.terminal.write(`\r\n\x1b[31mError: ${msg.message}\x1b[0m\r\n`);
+            if (this.terminal) {
+              this.terminal.write(`\r\n\x1b[31mError: ${msg.message}\x1b[0m\r\n`);
+            }
             break;
 
           case 'pong':
@@ -1652,11 +1668,14 @@ class ClaudePod {
       this.setConnectionStatus('disconnected');
       this.stopPing();
 
-      if (event.code !== 1000 && event.code !== 4001 && event.code !== 4002) {
+      // Don't reconnect if we intentionally closed or if it was a clean close
+      if (this.intentionalClose || event.code === 1000 || event.code === 4001 || event.code === 4002) {
+        if (!this.intentionalClose) {
+          this.showStatus('Disconnected', 'info');
+        }
+      } else {
         // Abnormal close, try to reconnect
         this.attemptReconnect(sessionName);
-      } else {
-        this.showStatus('Disconnected', 'info');
       }
     };
 
@@ -1668,18 +1687,25 @@ class ClaudePod {
   }
 
   attemptReconnect(sessionName) {
+    // Don't reconnect if we've switched to a different session
+    if (this.currentSession !== sessionName) {
+      console.log(`Skipping reconnect to ${sessionName}, now on ${this.currentSession}`);
+      return;
+    }
+
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      this.showStatus('Failed to reconnect', 'error');
+      this.showStatus('Connection lost. Tap to retry.', 'error');
       return;
     }
 
     this.reconnectAttempts++;
     const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts - 1), 10000);
 
-    this.showStatus(`Reconnecting in ${delay / 1000}s...`, 'warning');
+    this.showStatus(`Reconnecting... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`, 'warning');
 
     setTimeout(() => {
-      if (this.currentSession === sessionName) {
+      // Double-check we're still on the same session
+      if (this.currentSession === sessionName && !this.intentionalClose) {
         this.connectToSession(sessionName);
       }
     }, delay);
@@ -1813,6 +1839,29 @@ class ClaudePod {
   setupInstallPrompt() {
     const installBtn = document.getElementById('install-btn');
 
+    // Check if already installed as PWA
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                         window.navigator.standalone === true;
+
+    if (isStandalone) {
+      // Already installed, don't show install button
+      return;
+    }
+
+    // Check if iOS Safari (no beforeinstallprompt support)
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+    if (isIOS) {
+      // Show install button with iOS instructions
+      installBtn.style.display = 'inline-flex';
+      installBtn.textContent = 'Add to Home';
+      installBtn.addEventListener('click', () => {
+        this.showIOSInstallInstructions();
+      });
+      return;
+    }
+
+    // Android/Chrome - use beforeinstallprompt
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       this.deferredPrompt = e;
@@ -1837,6 +1886,25 @@ class ClaudePod {
       this.showStatus('ClaudePod installed!', 'success');
       installBtn.style.display = 'none';
     });
+  }
+
+  showIOSInstallInstructions() {
+    // Show instructions in terminal
+    const instructions = [
+      '',
+      '\x1b[1;36m  Install ClaudePod on iOS\x1b[0m',
+      '\x1b[38;2;90;90;90m  ─────────────────────────────\x1b[0m',
+      '',
+      '  1. Tap the \x1b[1mShare\x1b[0m button (box with arrow)',
+      '  2. Scroll down and tap \x1b[1m"Add to Home Screen"\x1b[0m',
+      '  3. Tap \x1b[1m"Add"\x1b[0m in the top right',
+      '',
+      '\x1b[38;2;90;90;90m  ─────────────────────────────\x1b[0m',
+      ''
+    ].join('\r\n');
+
+    this.terminal.write(instructions);
+    this.showStatus('See instructions above', 'info');
   }
 
   startSessionRefresh() {
