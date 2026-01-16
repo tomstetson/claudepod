@@ -1,0 +1,33 @@
+{
+  "id": "claudepod-v2",
+  "name": "ClaudePod",
+  "short_name": "ClaudePod",
+  "description": "Mobile terminal for Claude Code via Tailscale",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "categories": ["developer", "utilities"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New Session",
+      "url": "/?action=new",
+      "description": "Create a new Claude session"
+    }
+  ]
+}
