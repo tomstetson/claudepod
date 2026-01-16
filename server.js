@@ -46,6 +46,14 @@ const activeSessions = new Map(); // sessionName -> Set of WebSocket clients
 const sessionBuffers = new Map(); // sessionName -> RingBuffer
 const sessionStore = new SessionStore();
 
+// Security: Validate session name to prevent path traversal
+// Defense-in-depth - SessionStore also sanitizes, but we validate early
+function isValidSessionName(name) {
+  if (typeof name !== 'string' || !name) return false;
+  // Only allow alphanumeric, dash, underscore (matches tmux session name rules)
+  return /^[a-zA-Z0-9_-]+$/.test(name) && name.length <= 100;
+}
+
 // Get or create a buffer for a session
 function getSessionBuffer(sessionName) {
   if (!sessionBuffers.has(sessionName)) {
@@ -56,6 +64,12 @@ function getSessionBuffer(sessionName) {
 
 // Restore buffer from disk (for recovery after server restart)
 async function restoreBufferFromDisk(sessionName) {
+  // Security: Validate session name before disk operations
+  if (!isValidSessionName(sessionName)) {
+    console.error(`Invalid session name for buffer restore: ${sessionName}`);
+    return getSessionBuffer(sessionName);
+  }
+
   const buffer = getSessionBuffer(sessionName);
 
   // Only restore if buffer is empty (fresh after restart)
@@ -64,6 +78,10 @@ async function restoreBufferFromDisk(sessionName) {
   }
 
   try {
+    // Security: Explicit inline validation for static analysis tools
+    if (!/^[a-zA-Z0-9_-]+$/.test(sessionName)) {
+      throw new Error('Invalid session name');
+    }
     const diskContent = await sessionStore.readBuffer(sessionName);
     if (diskContent) {
       buffer.write(diskContent);
@@ -233,6 +251,11 @@ app.get('/api/directories', (req, res) => {
   try {
     const relativePath = req.query.path || '';
 
+    // Type validation - ensure path is a string (Express can parse arrays from query strings)
+    if (typeof relativePath !== 'string') {
+      return res.status(400).json({ error: 'Invalid path parameter' });
+    }
+
     // Strict sanitization - remove any path traversal attempts
     const cleanPath = relativePath
       .split(/[/\\]+/)
@@ -288,13 +311,21 @@ app.post('/api/directories', (req, res) => {
       return res.status(400).json({ error: 'Folder name is required' });
     }
 
+    // Type validation - ensure name and path are strings
+    if (typeof name !== 'string') {
+      return res.status(400).json({ error: 'Invalid folder name type' });
+    }
+
     // Validate folder name - only allow safe characters
     if (!/^[a-zA-Z0-9_-][a-zA-Z0-9_\-. ]*$/.test(name)) {
       return res.status(400).json({ error: 'Invalid folder name. Use letters, numbers, spaces, dashes, underscores, and dots.' });
     }
 
+    // Type validation for path
+    const pathStr = typeof relativePath === 'string' ? relativePath : '';
+
     // Sanitize parent path
-    const cleanPath = (relativePath || '')
+    const cleanPath = pathStr
       .split(/[/\\]+/)
       .filter(segment => segment && segment !== '.' && segment !== '..')
       .join('/');
@@ -467,9 +498,12 @@ wss.on('connection', (ws, req) => {
     });
 
     // Async persist to disk (fire and forget)
-    sessionStore.appendBuffer(sessionName, data).catch(err => {
-      console.error(`Failed to persist buffer for ${sessionName}:`, err.message);
-    });
+    // Security: Explicit inline validation for static analysis tools
+    if (/^[a-zA-Z0-9_-]+$/.test(sessionName)) {
+      sessionStore.appendBuffer(sessionName, data).catch(err => {
+        console.error(`Failed to persist buffer for ${sessionName}:`, err.message);
+      });
+    }
 
     // Check for prompts (only if no clients are viewing this session)
     outputBuffer += data;

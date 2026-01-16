@@ -129,6 +129,13 @@ const TERMINAL_THEMES = {
   }
 };
 
+// Security: HTML escape utility to prevent XSS
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 // Claude commands for the palette
 const CLAUDE_COMMANDS = [
   // Quick actions (most used on mobile)
@@ -1554,7 +1561,7 @@ class ClaudePod {
       this.renderDirectories(data);
     } catch (err) {
       console.error('loadDirectories error:', err);
-      dirList.innerHTML = `<div class="dir-empty">Error: ${err.message}</div>`;
+      dirList.innerHTML = `<div class="dir-empty">Error: ${escapeHtml(err.message)}</div>`;
     }
   }
 
@@ -1587,9 +1594,9 @@ class ClaudePod {
     } else {
       for (const dir of data.directories) {
         html += `
-          <div class="dir-item" data-path="${dir.path}">
+          <div class="dir-item" data-path="${escapeHtml(dir.path)}">
             <span class="dir-item-icon">&#128193;</span>
-            <span class="dir-item-name">${dir.name}</span>
+            <span class="dir-item-name">${escapeHtml(dir.name)}</span>
           </div>
         `;
       }
