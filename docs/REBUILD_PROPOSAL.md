@@ -2,7 +2,13 @@
 
 ## Executive Summary
 
-ClaudePod's current implementation has fundamental architectural limitations that create a "buggy" experience on iPhone Safari/PWA. After thorough analysis, I recommend a **ground-up rebuild** with a native-first touch architecture rather than iterative patches.
+ClaudePod's current implementation has fundamental architectural limitations that create a "buggy" experience on iPhone Safari/PWA. After thorough analysis of 15+ competing solutions (Happy Coder, Termly, AgentOS, Termius, Blink Shell, La Terminal, and others), I recommend a **ground-up rebuild** with a native-first touch architecture that positions ClaudePod as the **only open-source, self-hosted, privacy-first PWA for Claude Code mobile access**.
+
+### Competitive Positioning
+
+> **ClaudePod** is the only open-source, self-hosted PWA for monitoring and controlling Claude Code from your iPhone. Unlike relay-based solutions (Happy, Termly) that route your code through third-party servers, ClaudePod runs entirely on your infrastructure via Tailscale. It's the privacy-conscious choice for developers who want mobile access to their AI coding agents without compromising on security or control.
+
+**Tagline: "Your AI, Your Infrastructure, Your Privacy"**
 
 ---
 
@@ -83,34 +89,132 @@ hammer.get('swipe').set({
 
 ---
 
-## Part 2: Industry Analysis
+## Part 2: Competitive Landscape Analysis
 
-### Comparison with Production Mobile Terminals
+### Direct Competitors (Claude Code Mobile Access)
 
-| Feature | Termius | NewTerm 3 | a-Shell | ClaudePod |
-|---------|---------|-----------|---------|-----------|
-| Native touch terminal | Yes | Yes | Yes | No (xterm.js) |
-| Custom keyboard extensions | Yes | Yes | Yes | No |
-| Multi-pane support | Yes | Yes | No | No |
-| 120fps ProMotion support | Yes | Yes | N/A | No |
-| Shell integration | Yes | iTerm2 | Yes | No |
-| Offline command queue | Yes | N/A | N/A | No |
-| Gesture customization | Yes | Yes | No | Limited |
-| Power state adaptation | Yes | Yes | Partial | Minimal |
+| Solution | Architecture | Setup | Self-Hosted | Voice | Encryption |
+|----------|-------------|-------|-------------|-------|------------|
+| **[Happy Coder](https://github.com/slopus/happy)** | React Native + Relay | `happy` instead of `claude` | No (relay) | Yes | E2E |
+| **[Termly](https://termly.dev/)** | CLI + Relay | QR code scan | No (relay) | Yes | AES-256-GCM |
+| **[AgentOS](https://github.com/saadnvd1/agent-os)** | Next.js + tmux | npm install + run | Yes | No | Local only |
+| **ClaudePod** | Express + PWA | Self-hosted | Yes | Planned | Tailscale |
 
-### Key Insights from NewTerm 3
-- Complete rewrite for "improved performance and more accurate emulation"
-- Targets 120fps on ProMotion devices with tunable fallback to 15fps
-- Responds to system Low Power Mode
-- Split-screen panes for multitasking
-- Custom input handling via `libiosexec`
+**Key Insight:** Happy and Termly require relay servers. AgentOS is web-only (no mobile app feel). ClaudePod is uniquely positioned as self-hosted + PWA.
 
-### Web Terminal Best Practices (2025)
-- GPU-accelerated rendering (WebGPU/WebGL canvas)
-- Virtual scrolling for large histories
-- Adaptive design based on device context, not just screen size
-- Touch-specific configuration options
-- Multiline pattern matching for complex terminal states
+### Premium Mobile SSH Terminals
+
+| App | Key Innovation | Price | Open Source |
+|-----|----------------|-------|-------------|
+| **[Termius](https://termius.com/)** | Cross-platform sync, AI agent auto-start | Subscription | No |
+| **[Blink Shell](https://blink.sh/)** | Mosh (survives reboot), VS Code integration | $20 | Yes |
+| **[La Terminal](https://la-terminal.net/)** | El Preservador (server-side proxy), AI copilot | Freemium | No |
+| **[Prompt 3](https://panic.com/prompt/)** | GPU acceleration (10x faster), Vision Pro | $20/yr | No |
+| **[ShellFish](https://secureshellfish.app/)** | iOS Files app integration, built-in tmux | Freemium | No |
+
+### Local Terminal Emulators
+
+| App | Environment | Use Case |
+|-----|-------------|----------|
+| **[a-Shell](https://holzschu.github.io/a-Shell_iOS/)** | Python, JS, C locally | Offline coding on iOS |
+| **[iSH](https://ish.app/)** | x86 Linux emulation | Full Alpine Linux |
+| **[Termux](https://termux.dev/)** | Debian-based Linux | Android power users |
+| **[NewTerm 3](https://github.com/hbang/NewTerm)** | 120fps, iTerm2 integration | Jailbreak only |
+
+### Key Patterns from Industry Leaders
+
+**From Blink Shell:**
+- Mosh support is game-changing (connections survive device sleep/reboot)
+- Open source can compete with commercial quality
+
+**From La Terminal:**
+- El Preservador: Server-side proxy that buffers when iOS suspends app
+- Native touch > HTML-based terminals
+
+**From NewTerm 3:**
+- 120fps on ProMotion with tunable fallback (15/30/60fps)
+- Low Power Mode awareness automatic
+- iTerm2 Shell Integration for directory awareness
+
+**From Happy Coder:**
+- Voice input for hands-free interaction
+- "Replace command" approach (`happy` instead of `claude`) is frictionless
+- Bidirectional real-time sync is expected
+
+**From AgentOS:**
+- Multi-pane (4 AI agents simultaneously) is powerful
+- MCP conductor/worker model for orchestration
+- Git integration UI removes CLI dependency
+
+### Identified Market Gaps
+
+| Gap | Description | Opportunity |
+|-----|-------------|-------------|
+| **No open-source, self-hosted, AI-focused PWA** | Happy/Termly use relays; AgentOS is web-only | ClaudePod fills this gap |
+| **No voice + self-hosted combination** | Voice exists (Happy, Termly) OR self-hosted (AgentOS), not both | Add Web Speech API |
+| **No offline input queue for AI agents** | Mosh has connection persistence, but no input queuing | IndexedDB queue |
+| **No session transfer / Handoff** | Can't seamlessly continue session on desktop | Apple Handoff integration |
+| **No multi-agent orchestration on mobile** | AgentOS has 4-pane but web-only | 2-pane split view |
+| **No PWA with native-quality touch** | PWAs seen as "lesser" than native | Prove it can be done |
+
+---
+
+## Part 2.5: ClaudePod Competitive Advantages
+
+Based on comprehensive competitive analysis, ClaudePod should differentiate with these unique features:
+
+### 1. "Zero-Infrastructure AI Terminal" (PRIMARY DIFFERENTIATOR)
+Unlike Happy/Termly that require relay servers:
+- **Your Mac runs the server** (not a third-party relay)
+- **Tailscale provides secure access** (encrypted tunnel, no port forwarding)
+- **No subscription, no data leaves your network**
+- **Full privacy** - code never touches external servers
+
+### 2. "Session Consciousness" (UNIQUE FEATURE)
+Build awareness of Claude Code's state into the terminal:
+- Detect when Claude is **thinking** vs. **waiting for input**
+- **Smart notification timing** (notify on question, not on typing)
+- **Progress indicators** for long-running tasks
+- Visual distinction between Claude output and terminal output
+- **No competitor has AI-state-aware terminal UI**
+
+### 3. "Offline-First Input Architecture" (FROM MOSH)
+Implement input queuing that survives disconnection:
+- Type commands while offline
+- Queue persists to IndexedDB
+- Replay on reconnection with conflict resolution
+- Visual indicator showing queued inputs
+- **No competitor offers this for AI agent sessions**
+
+### 4. "PWA That Feels Native" (PROVE THE SKEPTICS WRONG)
+Build the definitive PWA terminal experience:
+- Custom canvas renderer (not xterm.js)
+- iOS keyboard handling that actually works
+- Platform-specific gesture adapters
+- 60fps scrolling on iPhone 12+
+- **Reference implementation for web terminals**
+
+### 5. "tmux-Native Multi-Session" (FROM AGENTUS)
+Leverage existing tmux sessions:
+- See all tmux sessions on your Mac
+- Switch between Claude instances instantly
+- Create/destroy sessions from phone
+- **Unlike Happy which wraps `claude`, we attach to real tmux**
+
+### 6. "Ambient Monitoring Mode" (NEW CONCEPT)
+For users who want to monitor, not interact:
+- **Read-only view** optimized for glancing
+- Large status indicators visible at arm's length
+- Notification summary without full terminal
+- **Low battery mode** (15fps, minimal updates)
+- **No competitor offers a dedicated "check in" mode**
+
+### 7. "Voice-to-Terminal Bridge" (CATCH-UP FEATURE)
+Add voice input to match Happy/Termly:
+- Use Web Speech API (works in Safari PWA)
+- Voice-to-text for input composer
+- Optional: Voice commands ("approve", "cancel", "scroll up")
+- **Table stakes for 2025 mobile terminal**
 
 ---
 
@@ -344,43 +448,89 @@ interface SessionState {
 
 ---
 
-## Part 5: Implementation Roadmap
+## Part 5: Implementation Roadmap (Competitive-Adjusted)
 
-### Phase 1: Foundation (Core Terminal)
-- Custom virtual terminal renderer
-- Basic ANSI parsing and rendering
-- Touch scrolling with momentum
-- WebSocket connection (reuse existing server)
+### Phase 1: Foundation - "PWA That Works"
+**Goal:** Reliable iOS keyboard and basic terminal
 
-### Phase 2: iOS Keyboard Excellence
-- Platform-specific keyboard manager
-- Robust focus management
-- Keyboard recovery mechanisms
-- Input composition handling
+| Task | Priority | Competitive Impact |
+|------|----------|-------------------|
+| iOS keyboard manager with recovery | P0 | Parity with native apps |
+| Custom canvas terminal renderer | P0 | Replace buggy xterm.js |
+| Basic ANSI parsing | P0 | Core functionality |
+| WebSocket connection (reuse server) | P0 | No changes needed |
+| Touch scrolling with momentum | P1 | Match native feel |
 
-### Phase 3: Gesture System
-- Edge-swipe session switching
-- Text selection via long press
-- Pinch-to-zoom font
-- Context menu system
+### Phase 2: Differentiation - "Zero-Infrastructure"
+**Goal:** Emphasize self-hosted advantage
 
-### Phase 4: Offline & Reliability
-- IndexedDB offline queue
-- Optimistic updates
-- State reconciliation
-- Background sync
+| Task | Priority | Competitive Impact |
+|------|----------|-------------------|
+| tmux session switching | P0 | Unique vs Happy/Termly |
+| Push notifications on Claude prompt | P0 | Parity with Happy |
+| Session state indicator (thinking/waiting) | P1 | **Unique feature** |
+| Tailscale-aware connection handling | P1 | Smooth reconnection |
 
-### Phase 5: Polish & Features
-- Multi-pane support
-- Quick action customization
-- Notification improvements
-- Theme system overhaul
+### Phase 3: Reliability - "Offline-First"
+**Goal:** Input queuing that survives disconnection
 
-### Phase 6: Performance & Testing
-- 60fps benchmarks
-- Memory profiling
-- Battery impact testing
-- Real device testing matrix
+| Task | Priority | Competitive Impact |
+|------|----------|-------------------|
+| IndexedDB offline queue | P0 | **Unique feature** |
+| Optimistic UI updates | P1 | Better UX |
+| Queue replay on reconnection | P0 | Complete the feature |
+| Visual indicator for queued inputs | P1 | User confidence |
+
+### Phase 4: Catch-Up - "Voice & Gestures"
+**Goal:** Match Happy/Termly voice, add gestures
+
+| Task | Priority | Competitive Impact |
+|------|----------|-------------------|
+| Web Speech API voice input | P0 | Parity with competitors |
+| Edge-swipe session switching | P1 | Gesture vocabulary |
+| Pinch-to-zoom font | P2 | Accessibility |
+| Context menu (two-finger tap) | P2 | Power users |
+
+### Phase 5: Innovation - "Ambient Mode"
+**Goal:** Differentiate with monitoring-focused view
+
+| Task | Priority | Competitive Impact |
+|------|----------|-------------------|
+| Read-only ambient monitoring mode | P1 | **Unique feature** |
+| Large status indicators | P1 | Glanceable |
+| Low battery mode (15fps) | P2 | NewTerm 3 pattern |
+| Notification summary view | P2 | Quick check-in |
+
+### Phase 6: Advanced - "Multi-Agent"
+**Goal:** AgentOS-level power on mobile
+
+| Task | Priority | Competitive Impact |
+|------|----------|-------------------|
+| 2-pane split view | P1 | AgentOS for mobile |
+| Quick action customization | P2 | Power users |
+| Theme system overhaul | P2 | Polish |
+| Performance profiling (60fps target) | P1 | Quality bar |
+
+### Priority Summary
+
+**Must-Have (Phases 1-2):**
+1. iOS keyboard that works 100%
+2. Custom canvas renderer
+3. tmux session switching
+4. Push notifications
+5. Session state awareness
+
+**Should-Have (Phases 3-4):**
+6. Offline input queue
+7. Voice input
+8. Gesture system
+9. Queue replay
+
+**Nice-to-Have (Phases 5-6):**
+10. Ambient monitoring mode
+11. 2-pane split view
+12. Theme system
+13. Performance optimization
 
 ---
 
@@ -454,18 +604,64 @@ interface SessionState {
 
 ## Conclusion
 
-The current ClaudePod has a solid server architecture but fundamental client-side limitations rooted in xterm.js's desktop-first design. Rather than continuing to patch around these issues, a ground-up rebuild of the client with mobile-first architecture will deliver a production-quality experience comparable to native apps like Termius and NewTerm.
+The current ClaudePod has a solid server architecture but fundamental client-side limitations rooted in xterm.js's desktop-first design. After analyzing 15+ competing solutions, a clear opportunity emerges:
 
-The server can remain largely unchanged, preserving the valuable work on session management, notifications, and persistence. The client rebuild focuses on the terminal renderer, input system, and platform adaptation layers.
+**ClaudePod can be the definitive open-source, self-hosted, privacy-first mobile terminal for Claude Code.**
 
-**Estimated scope:** Significant engineering effort, but the result would be a genuinely usable mobile terminal for Claude Code - something that doesn't exist today in the open source space.
+### Why ClaudePod Will Win
+
+| Advantage | vs Happy/Termly | vs AgentOS | vs Termius/Blink |
+|-----------|----------------|------------|------------------|
+| **Self-hosted** | No relay servers | Same | N/A (different use case) |
+| **PWA** | Same | Yes (web-only) | Native only |
+| **AI-aware** | Planned | Similar | No |
+| **Offline queue** | Unique | No | Mosh only |
+| **Open source** | Same | Same | No (mostly) |
+| **Privacy** | Better (no relay) | Same | Varies |
+
+### Target User
+
+> A developer who runs Claude Code on their Mac and wants to monitor/approve it from their iPhone while away from their desk. They're privacy-conscious, technical enough to self-host, and don't want their code routing through third-party servers.
+
+### Non-Target Users (Better Served Elsewhere)
+
+- **General SSH users:** Use Termius, Blink Shell, or Prompt 3
+- **Local terminal users:** Use a-Shell or iSH
+- **Relay-accepting users:** Happy Coder is easier to set up
+- **Android users:** Not supported yet
+
+### Final Recommendation
+
+1. **Rebuild the client** with custom canvas renderer and iOS keyboard handling
+2. **Keep the server** - it's solid and differentiated (tmux-native)
+3. **Add competitive features** - voice, offline queue, session awareness
+4. **Own the niche** - "self-hosted Claude Code mobile"
+
+The result would be a genuinely production-quality mobile terminal that proves PWAs can compete with native apps, while serving the privacy-conscious developer community.
 
 ---
 
 ## Appendix: Reference Links
 
+### Direct Competitors
+- [Happy Coder](https://github.com/slopus/happy) - MIT licensed Claude Code mobile client
+- [Termly](https://termly.dev/) - Voice interface for terminal AI tools
+- [AgentOS](https://github.com/saadnvd1/agent-os) - Multi-pane AI session management
+
+### Premium SSH Terminals
+- [Termius](https://termius.com/) - Cross-platform SSH with AI integration
+- [Blink Shell](https://blink.sh/) - Mosh + VS Code on iOS
+- [La Terminal](https://la-terminal.net/) - Native touch SSH with AI copilot
+- [Prompt 3](https://panic.com/prompt/) - Panic's GPU-accelerated terminal
+- [Secure ShellFish](https://secureshellfish.app/) - iOS Files app integration
+
+### Local Terminals
+- [a-Shell](https://holzschu.github.io/a-Shell_iOS/) - Python/JS/C locally on iOS
+- [iSH](https://ish.app/) - x86 Linux emulation
+- [NewTerm 3](https://github.com/hbang/NewTerm) - 120fps jailbreak terminal
+- [Termux](https://termux.dev/) - Full Linux on Android
+
+### Technical References
 - [xterm.js Mobile Touch Issues](https://github.com/xtermjs/xterm.js/issues/5377)
-- [NewTerm 3 on GitHub](https://github.com/hbang/NewTerm)
-- [Termius iOS](https://termius.com/download/ios)
 - [iOS Safari PWA Keyboard Bug](https://discussions.apple.com/thread/253685039)
-- [Web Terminal Emulators 2025](https://www.slant.co/topics/1781/~best-web-based-terminal-emulators)
+- [Mobile UX Best Practices 2025](https://uxcam.com/blog/mobile-ux/)
