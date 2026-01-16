@@ -168,6 +168,8 @@ class ClaudePod {
     this.fitAddon = null;
     this.searchAddon = null;
     this.connection = null; // ConnectionManager instance
+    this.scrollController = null; // ScrollController instance
+    this.performanceMonitor = null; // PerformanceMonitor instance
     this.currentSession = null;
     this.sessions = [];
     this.resizeTimeout = null;
@@ -183,6 +185,9 @@ class ClaudePod {
     // Buffer state for scrollback
     this.bufferState = null;
     this.lastReceivedLine = 0;
+
+    // Keyboard state for scroll preservation
+    this.savedScrollPosition = null;
 
     // Virtual keyboard state tracking for iOS
     this.keyboardVisible = false;
@@ -206,6 +211,8 @@ class ClaudePod {
 
     this.setupTerminal();
     this.setupConnection();
+    this.setupScroll();
+    this.setupPerformanceMonitor();
     this.setupEventListeners();
     this.setupModal();
     this.setupDirModal();
@@ -285,24 +292,40 @@ class ClaudePod {
       }, 150);
     });
 
-    // Virtual keyboard detection for iOS
+    // Virtual keyboard detection for iOS with scroll preservation
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', () => {
         const currentHeight = window.visualViewport.height;
         const heightDiff = this.viewportHeight - currentHeight;
+        const wasKeyboardVisible = this.keyboardVisible;
 
         // Keyboard is likely open if viewport shrunk by >150px
         this.keyboardVisible = heightDiff > 150;
 
-        if (this.keyboardVisible) {
+        // Get terminal viewport for scroll preservation
+        const viewport = this.terminal?.element?.querySelector('.xterm-viewport');
+
+        if (this.keyboardVisible && !wasKeyboardVisible) {
+          // Keyboard just opened - save scroll position
           document.body.classList.add('keyboard-visible');
+          if (viewport) {
+            this.savedScrollPosition = viewport.scrollTop;
+          }
           // Scroll input into view
           const composer = document.getElementById('input-composer');
           if (document.activeElement === composer) {
             composer.scrollIntoView({ block: 'end', behavior: 'smooth' });
           }
-        } else {
+        } else if (!this.keyboardVisible && wasKeyboardVisible) {
+          // Keyboard just closed - restore scroll position
           document.body.classList.remove('keyboard-visible');
+          if (viewport && this.savedScrollPosition !== null) {
+            // Use requestAnimationFrame to ensure layout is complete
+            requestAnimationFrame(() => {
+              viewport.scrollTop = this.savedScrollPosition;
+              this.savedScrollPosition = null;
+            });
+          }
         }
 
         // Refit terminal
@@ -411,6 +434,11 @@ class ClaudePod {
       console.log('State sync received:', msg.bufferState);
       this.bufferState = msg.bufferState;
 
+      // Update scroll controller with buffer state
+      if (this.scrollController && msg.bufferState) {
+        this.scrollController.updateBufferState(msg.bufferState);
+      }
+
       // Write historical content to terminal
       if (msg.lines && msg.lines.length > 0) {
         // Clear terminal and write history
@@ -426,11 +454,11 @@ class ClaudePod {
       }
     });
 
-    // Sync response for history fetch
+    // Sync response for history fetch - ScrollController handles this
     this.connection.on('sync_response', (msg) => {
       console.log('Sync response:', msg.startLine, '-', msg.endLine);
       this.bufferState = msg.bufferState;
-      // History content handling will be added in Phase 3 (scroll controller)
+      // ScrollController.handleSyncResponse is called automatically via event binding
     });
 
     // Pong for latency measurement
@@ -444,6 +472,71 @@ class ClaudePod {
       this.showStatus(`Session ended (code: ${msg.code})`, 'warning');
       this.loadSessions();
     });
+  }
+
+  setupScroll() {
+    this.scrollController = new ScrollController({
+      terminal: this.terminal,
+      connection: this.connection,
+      fetchThreshold: 200,
+      fetchCount: 500,
+      onHistoryLoad: (event) => {
+        if (event.loading) {
+          this.showStatus('Loading history...', 'info');
+        } else if (event.loaded) {
+          this.showStatus(`Loaded ${event.count} lines of history`, 'success');
+        }
+      }
+    });
+
+    // Initialize after a short delay to ensure terminal is ready
+    setTimeout(() => {
+      this.scrollController.init();
+    }, 100);
+  }
+
+  setupPerformanceMonitor() {
+    // Only enable on low-power devices or if user has performance issues
+    const shouldMonitor = PerformanceMonitor.isLowPowerDevice();
+
+    if (shouldMonitor) {
+      this.performanceMonitor = new PerformanceMonitor({
+        targetFps: 60,
+        lowFpsThreshold: 30,
+        criticalFpsThreshold: 15,
+        onQualityChange: (event) => {
+          console.log(`Quality changed to ${event.newQuality}`);
+          this.applyQualitySettings(event.newQuality);
+        },
+        onFpsUpdate: (event) => {
+          // Could add FPS indicator to UI if desired
+        }
+      });
+
+      this.performanceMonitor.start();
+      console.log('Performance monitoring enabled (low-power device detected)');
+    }
+  }
+
+  applyQualitySettings(quality) {
+    if (!this.terminal) return;
+
+    switch (quality) {
+      case 'low':
+        this.terminal.options.scrollback = 200;
+        this.terminal.options.cursorBlink = false;
+        this.showStatus('Reduced quality for performance', 'info');
+        break;
+      case 'medium':
+        this.terminal.options.scrollback = 500;
+        this.terminal.options.cursorBlink = true;
+        break;
+      case 'high':
+      default:
+        this.terminal.options.scrollback = 1000;
+        this.terminal.options.cursorBlink = true;
+        break;
+    }
   }
 
   setupEventListeners() {
