@@ -167,11 +167,9 @@ class ClaudePod {
     this.terminal = null;
     this.fitAddon = null;
     this.searchAddon = null;
-    this.socket = null;
+    this.connection = null; // ConnectionManager instance
     this.currentSession = null;
     this.sessions = [];
-    this.reconnectAttempts = 0;
-    this.maxReconnectAttempts = 5;
     this.resizeTimeout = null;
     this.currentDirPath = '';
     this.refreshInterval = null;
@@ -181,6 +179,10 @@ class ClaudePod {
     this.pingInterval = null;
     this.latency = null;
     this.currentTheme = localStorage.getItem('claudepod_theme') || 'default';
+
+    // Buffer state for scrollback
+    this.bufferState = null;
+    this.lastReceivedLine = 0;
 
     // Virtual keyboard state tracking for iOS
     this.keyboardVisible = false;
@@ -203,6 +205,7 @@ class ClaudePod {
     }
 
     this.setupTerminal();
+    this.setupConnection();
     this.setupEventListeners();
     this.setupModal();
     this.setupDirModal();
@@ -211,6 +214,10 @@ class ClaudePod {
     this.setupGestures();
     this.setupOfflineDetection();
     this.setupInstallPrompt();
+    this.setupDpad();
+    this.setupMenuDetection();
+    this.setupPasteChip();
+    this.setupKeyboardDismiss();
     await this.loadSessions();
     this.startSessionRefresh();
 
@@ -331,6 +338,114 @@ class ClaudePod {
     }
   }
 
+  setupConnection() {
+    this.connection = new ConnectionManager({
+      maxReconnectAttempts: 10,
+      baseDelay: 1000,
+      maxDelay: 30000,
+      idleTimeout: 5 * 60 * 1000 // 5 minutes
+    });
+
+    // Connection events
+    this.connection.on('connected', (data) => {
+      console.log('Connected:', data);
+      this.setConnectionStatus('connected');
+      this.showStatus(`Connected to ${this.currentSession}`, 'success');
+      this.terminal.focus();
+      this.sendResize();
+      this.startPing();
+      this.loadDraft();
+
+      // Handle pending PWA action
+      if (this.pendingAction) {
+        setTimeout(() => {
+          if (this.pendingAction === 'new') {
+            this.showDirModal();
+          } else if (this.pendingAction === 'palette') {
+            this.showPalette();
+          }
+          this.pendingAction = null;
+        }, 500);
+      }
+    });
+
+    this.connection.on('disconnected', (data) => {
+      console.log('Disconnected:', data);
+      this.setConnectionStatus('disconnected');
+      this.stopPing();
+
+      if (!data.wasIntentional) {
+        this.showStatus('Disconnected', 'warning');
+      }
+    });
+
+    this.connection.on('reconnecting', (data) => {
+      this.setConnectionStatus('connecting');
+      this.showStatus(`Reconnecting... (${data.attempt}/${data.maxAttempts})`, 'warning');
+    });
+
+    this.connection.on('reconnect_failed', () => {
+      this.setConnectionStatus('error');
+      this.showStatus('Connection lost. Tap to retry.', 'error');
+    });
+
+    this.connection.on('error', (data) => {
+      console.error('Connection error:', data);
+      if (!data.recoverable) {
+        this.showStatus(data.message || 'Connection error', 'error');
+      }
+    });
+
+    // Terminal output
+    this.connection.on('output', (msg) => {
+      if (this.terminal && msg.data) {
+        this.terminal.write(msg.data);
+      }
+      if (msg.line) {
+        this.lastReceivedLine = msg.line;
+      }
+    });
+
+    // State sync on initial connect or reconnect
+    this.connection.on('state_sync', (msg) => {
+      console.log('State sync received:', msg.bufferState);
+      this.bufferState = msg.bufferState;
+
+      // Write historical content to terminal
+      if (msg.lines && msg.lines.length > 0) {
+        // Clear terminal and write history
+        this.terminal.clear();
+        const content = msg.lines.join('\n');
+        if (content) {
+          this.terminal.write(content + '\n');
+        }
+      }
+
+      if (msg.startLine) {
+        this.lastReceivedLine = msg.startLine + (msg.lines?.length || 0) - 1;
+      }
+    });
+
+    // Sync response for history fetch
+    this.connection.on('sync_response', (msg) => {
+      console.log('Sync response:', msg.startLine, '-', msg.endLine);
+      this.bufferState = msg.bufferState;
+      // History content handling will be added in Phase 3 (scroll controller)
+    });
+
+    // Pong for latency measurement
+    this.connection.on('pong', (msg) => {
+      this.latency = Date.now() - msg.timestamp;
+      this.setConnectionStatus('connected');
+    });
+
+    // Session exit
+    this.connection.on('exit', (msg) => {
+      this.showStatus(`Session ended (code: ${msg.code})`, 'warning');
+      this.loadSessions();
+    });
+  }
+
   setupEventListeners() {
     // Session selector
     const sessionSelect = document.getElementById('session-select');
@@ -346,11 +461,11 @@ class ClaudePod {
     newSessionBtn.addEventListener('click', () => this.createNewSession());
 
     // Font size controls
-    document.getElementById('font-decrease').addEventListener('click', () => {
+    document.getElementById('font-decrease')?.addEventListener('click', () => {
       this.haptic('light');
       this.changeFontSize(-1);
     });
-    document.getElementById('font-increase').addEventListener('click', () => {
+    document.getElementById('font-increase')?.addEventListener('click', () => {
       this.haptic('light');
       this.changeFontSize(1);
     });
@@ -362,21 +477,21 @@ class ClaudePod {
     }
 
     // Scroll controls
-    document.getElementById('scroll-top').addEventListener('click', () => {
+    document.getElementById('scroll-top')?.addEventListener('click', () => {
       this.haptic('light');
       this.terminal.scrollToTop();
     });
-    document.getElementById('scroll-bottom').addEventListener('click', () => {
+    document.getElementById('scroll-bottom')?.addEventListener('click', () => {
       this.haptic('light');
       this.terminal.scrollToBottom();
     });
 
     // Kill session button
     const killSessionBtn = document.getElementById('kill-session-btn');
-    killSessionBtn.addEventListener('click', () => this.showKillModal());
+    killSessionBtn?.addEventListener('click', () => this.showKillModal());
 
-    // Quick action buttons
-    document.querySelectorAll('.action-btn:not(#kill-session-btn):not(#palette-btn)').forEach(btn => {
+    // Quick action buttons (both .action-btn and .quick-btn)
+    document.querySelectorAll('.action-btn:not(#kill-session-btn):not(#palette-btn), .quick-btn:not(#palette-btn)').forEach(btn => {
       btn.addEventListener('click', () => {
         const input = btn.dataset.input;
         const key = btn.dataset.key;
@@ -606,10 +721,14 @@ class ClaudePod {
     const composer = document.getElementById('input-composer');
     const sendBtn = document.getElementById('send-btn');
 
+    if (!composer || !sendBtn) return;
+
     // Auto-resize textarea
     composer.addEventListener('input', () => {
       composer.style.height = 'auto';
       composer.style.height = Math.min(composer.scrollHeight, 120) + 'px';
+      // Save draft on input
+      this.saveDraft();
     });
 
     // Send on button click
@@ -637,9 +756,10 @@ class ClaudePod {
     // Add to history
     this.addToHistory(text);
 
-    // Clear input
+    // Clear input and draft
     composer.value = '';
     composer.style.height = 'auto';
+    this.clearDraft();
 
     // Focus terminal for scrolling
     this.terminal.focus();
@@ -1171,7 +1291,7 @@ class ClaudePod {
 
   // Import text from file
   importFile() {
-    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+    if (!this.connection || !this.connection.isConnected()) {
       this.showStatus('Not connected', 'error');
       return;
     }
@@ -1585,16 +1705,7 @@ class ClaudePod {
   }
 
   connectToSession(sessionName) {
-    // Close existing connection with proper code to prevent reconnection
-    if (this.socket) {
-      this.intentionalClose = true;  // Flag to prevent reconnection
-      this.socket.close(1000, 'Switching session');
-      this.socket = null;
-    }
-
     this.currentSession = sessionName;
-    this.reconnectAttempts = 0;
-    this.intentionalClose = false;  // Reset flag for new connection
     this.terminal.clear();
     this.showStatus(`Connecting to ${sessionName}...`, 'info');
 
@@ -1602,118 +1713,19 @@ class ClaudePod {
     const select = document.getElementById('session-select');
     select.value = sessionName;
 
-    // Create WebSocket connection
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/terminal/${sessionName}`;
+    // Reset buffer state for new session
+    this.bufferState = null;
+    this.lastReceivedLine = 0;
 
+    // Connect using ConnectionManager
     this.setConnectionStatus('connecting');
-    this.socket = new WebSocket(wsUrl);
-
-    this.socket.onopen = () => {
-      console.log(`Connected to session: ${sessionName}`);
-      this.setConnectionStatus('connected');
-      this.showStatus(`Connected to ${sessionName}`, 'success');
-      this.reconnectAttempts = 0;
-      this.terminal.focus();
-      this.sendResize();
-      this.startPing();
-
-      // Handle pending PWA action
-      if (this.pendingAction) {
-        setTimeout(() => {
-          if (this.pendingAction === 'new') {
-            this.showDirModal();
-          } else if (this.pendingAction === 'palette') {
-            this.showPalette();
-          }
-          this.pendingAction = null;
-        }, 500);
-      }
-    };
-
-    this.socket.onmessage = (event) => {
-      try {
-        const msg = JSON.parse(event.data);
-
-        switch (msg.type) {
-          case 'output':
-            if (this.terminal) {
-              this.terminal.write(msg.data);
-            }
-            break;
-
-          case 'exit':
-            this.showStatus(`Session ended (code: ${msg.code})`, 'warning');
-            this.loadSessions(); // Refresh session list
-            break;
-
-          case 'error':
-            this.showStatus(msg.message || 'Connection error', 'error');
-            if (this.terminal) {
-              this.terminal.write(`\r\n\x1b[31mError: ${msg.message}\x1b[0m\r\n`);
-            }
-            break;
-
-          case 'pong':
-            this.handlePong(msg.timestamp);
-            break;
-        }
-      } catch (err) {
-        console.error('Invalid message:', err);
-      }
-    };
-
-    this.socket.onclose = (event) => {
-      console.log(`Disconnected from session: ${sessionName}`, event.code, event.reason);
-      this.setConnectionStatus('disconnected');
-      this.stopPing();
-
-      // Don't reconnect if we intentionally closed or if it was a clean close
-      if (this.intentionalClose || event.code === 1000 || event.code === 4001 || event.code === 4002) {
-        if (!this.intentionalClose) {
-          this.showStatus('Disconnected', 'info');
-        }
-      } else {
-        // Abnormal close, try to reconnect
-        this.attemptReconnect(sessionName);
-      }
-    };
-
-    this.socket.onerror = (err) => {
-      console.error('WebSocket error:', err);
-      this.setConnectionStatus('error');
-      this.showStatus('Connection error', 'error');
-    };
-  }
-
-  attemptReconnect(sessionName) {
-    // Don't reconnect if we've switched to a different session
-    if (this.currentSession !== sessionName) {
-      console.log(`Skipping reconnect to ${sessionName}, now on ${this.currentSession}`);
-      return;
-    }
-
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      this.showStatus('Connection lost. Tap to retry.', 'error');
-      return;
-    }
-
-    this.reconnectAttempts++;
-    const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts - 1), 10000);
-
-    this.showStatus(`Reconnecting... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`, 'warning');
-
-    setTimeout(() => {
-      // Double-check we're still on the same session
-      if (this.currentSession === sessionName && !this.intentionalClose) {
-        this.connectToSession(sessionName);
-      }
-    }, delay);
+    this.connection.resetState();
+    this.connection.connect(sessionName);
   }
 
   sendInput(data) {
-    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-      this.socket.send(JSON.stringify({ type: 'input', data }));
+    if (this.connection) {
+      this.connection.sendInput(data);
     }
   }
 
@@ -1736,9 +1748,9 @@ class ClaudePod {
   }
 
   sendResize() {
-    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+    if (this.connection && this.terminal) {
       const { cols, rows } = this.terminal;
-      this.socket.send(JSON.stringify({ type: 'resize', cols, rows }));
+      this.connection.sendResize(cols, rows);
     }
   }
 
@@ -1777,8 +1789,8 @@ class ClaudePod {
   startPing() {
     this.stopPing(); // Clear any existing
     this.pingInterval = setInterval(() => {
-      if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-        this.socket.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }));
+      if (this.connection && this.connection.isConnected()) {
+        this.connection.sendPing();
       }
     }, 5000); // Ping every 5 seconds
   }
@@ -1789,11 +1801,6 @@ class ClaudePod {
       this.pingInterval = null;
     }
     this.latency = null;
-  }
-
-  handlePong(timestamp) {
-    this.latency = Date.now() - timestamp;
-    this.setConnectionStatus('connected');
   }
 
   setButtonLoading(btn, loading) {
@@ -1822,12 +1829,11 @@ class ClaudePod {
     updateOnlineStatus();
 
     // Smart reconnection on network restore
+    // Note: ConnectionManager handles this automatically, but we show a status message
     window.addEventListener('online', () => {
-      if (this.currentSession && (!this.socket || this.socket.readyState !== WebSocket.OPEN)) {
+      if (this.currentSession && this.connection && !this.connection.isConnected()) {
         this.showStatus('Back online, reconnecting...', 'info');
-        setTimeout(() => {
-          this.connectToSession(this.currentSession);
-        }, 500);
+        // ConnectionManager will handle reconnection automatically
       }
     });
 
@@ -1930,6 +1936,294 @@ class ClaudePod {
 
   showEmptyState() {
     this.terminal.write('\r\n\x1b[38;2;90;90;90m  No active sessions.\r\n  Tap "+ New" to start a Claude session.\x1b[0m\r\n');
+  }
+
+  // ============ D-PAD SETUP ============
+  setupDpad() {
+    const arrowKeys = {
+      'up': '\x1b[A',
+      'down': '\x1b[B',
+      'right': '\x1b[C',
+      'left': '\x1b[D'
+    };
+
+    document.querySelectorAll('.dpad-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const direction = btn.dataset.arrow;
+        if (direction && arrowKeys[direction]) {
+          this.haptic('light');
+          this.sendInput(arrowKeys[direction]);
+        }
+      });
+    });
+  }
+
+  // ============ MENU DETECTION & TAP-TO-SELECT ============
+  setupMenuDetection() {
+    this.menuOverlay = document.getElementById('menu-overlay');
+    this.detectedMenuOptions = [];
+    this.menuCheckInterval = null;
+
+    // Check for menus periodically when terminal has data
+    if (this.terminal) {
+      this.terminal.onData(() => {
+        // Debounce menu detection
+        clearTimeout(this.menuCheckTimeout);
+        this.menuCheckTimeout = setTimeout(() => {
+          this.detectAndRenderMenu();
+        }, 300);
+      });
+    }
+  }
+
+  detectAndRenderMenu() {
+    if (!this.terminal || !this.menuOverlay) return;
+
+    const buffer = this.terminal.buffer.active;
+    const viewportHeight = this.terminal.rows;
+    const baseY = buffer.viewportY;
+
+    // Scan visible lines for menu patterns
+    const menuPatterns = [];
+    let currentSelection = -1;
+
+    for (let i = 0; i < viewportHeight; i++) {
+      const line = buffer.getLine(baseY + i);
+      if (!line) continue;
+
+      const text = line.translateToString(true);
+
+      // Detect selection indicator (❯ or >)
+      const selectionMatch = text.match(/^(\s*)(❯|>)\s+(.+)$/);
+      if (selectionMatch) {
+        currentSelection = menuPatterns.length;
+        menuPatterns.push({
+          row: i,
+          text: selectionMatch[3].trim(),
+          isSelected: true
+        });
+        continue;
+      }
+
+      // Detect unselected options (indented, no indicator)
+      const optionMatch = text.match(/^(\s{2,})([^❯>\s].+)$/);
+      if (optionMatch && menuPatterns.length > 0) {
+        // Only add if we already found a selected item (part of same menu)
+        const optionText = optionMatch[2].trim();
+        // Skip if it's a prompt line or header
+        if (!optionText.startsWith('?') && optionText.length > 1) {
+          menuPatterns.push({
+            row: i,
+            text: optionText,
+            isSelected: false
+          });
+        }
+      }
+
+      // Detect checkbox options [ ] or [x]
+      const checkboxMatch = text.match(/^(\s*)\[([ x])\]\s+(.+)$/i);
+      if (checkboxMatch) {
+        menuPatterns.push({
+          row: i,
+          text: checkboxMatch[3].trim(),
+          isSelected: checkboxMatch[2].toLowerCase() === 'x',
+          isCheckbox: true
+        });
+      }
+    }
+
+    // Only show overlay if we found menu options
+    if (menuPatterns.length >= 2) {
+      this.renderMenuOverlay(menuPatterns, currentSelection);
+    } else {
+      this.clearMenuOverlay();
+    }
+  }
+
+  renderMenuOverlay(options, currentSelection) {
+    if (!this.menuOverlay) return;
+
+    this.detectedMenuOptions = options;
+    this.currentMenuSelection = currentSelection;
+
+    // Get terminal dimensions for positioning
+    const terminalEl = document.getElementById('terminal');
+    const termRect = terminalEl.getBoundingClientRect();
+    const cellHeight = termRect.height / this.terminal.rows;
+    const cellWidth = termRect.width / this.terminal.cols;
+
+    let html = '';
+    options.forEach((opt, idx) => {
+      const top = opt.row * cellHeight;
+      const height = cellHeight;
+
+      html += `
+        <div class="menu-option"
+             data-index="${idx}"
+             style="top: ${top}px; left: 0; right: 0; height: ${height}px;">
+          <span class="menu-option-label">TAP</span>
+        </div>
+      `;
+    });
+
+    this.menuOverlay.innerHTML = html;
+    this.menuOverlay.classList.add('active');
+
+    // Add click handlers
+    this.menuOverlay.querySelectorAll('.menu-option').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const idx = parseInt(el.dataset.index);
+        this.selectMenuOption(idx);
+      });
+    });
+  }
+
+  selectMenuOption(targetIndex) {
+    if (!this.detectedMenuOptions || targetIndex < 0) return;
+
+    const currentIdx = this.currentMenuSelection >= 0 ? this.currentMenuSelection : 0;
+    const delta = targetIndex - currentIdx;
+
+    this.haptic('medium');
+
+    // Send arrow keys to navigate
+    if (delta !== 0) {
+      const arrowKey = delta > 0 ? '\x1b[B' : '\x1b[A'; // Down or Up
+      const count = Math.abs(delta);
+      for (let i = 0; i < count; i++) {
+        this.sendInput(arrowKey);
+      }
+    }
+
+    // Send Enter after a short delay
+    setTimeout(() => {
+      this.sendInput('\r');
+      this.clearMenuOverlay();
+    }, 50);
+  }
+
+  clearMenuOverlay() {
+    if (this.menuOverlay) {
+      this.menuOverlay.innerHTML = '';
+      this.menuOverlay.classList.remove('active');
+    }
+    this.detectedMenuOptions = [];
+    this.currentMenuSelection = -1;
+  }
+
+  // ============ PASTE CHIP ============
+  setupPasteChip() {
+    this.pasteChip = document.getElementById('paste-chip');
+    const composer = document.getElementById('input-composer');
+
+    if (!this.pasteChip || !composer) return;
+
+    // Check clipboard on focus
+    composer.addEventListener('focus', () => this.checkClipboard());
+
+    // Paste chip click handler
+    this.pasteChip.addEventListener('click', async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text) {
+          composer.value += text;
+          composer.dispatchEvent(new Event('input'));
+          this.haptic('light');
+          this.pasteChip.style.display = 'none';
+        }
+      } catch (err) {
+        console.warn('Paste failed:', err);
+      }
+    });
+  }
+
+  async checkClipboard() {
+    if (!this.pasteChip) return;
+
+    try {
+      // Check if clipboard has text (requires permission)
+      const text = await navigator.clipboard.readText();
+      if (text && text.trim()) {
+        this.pasteChip.style.display = 'block';
+      } else {
+        this.pasteChip.style.display = 'none';
+      }
+    } catch (err) {
+      // Clipboard access denied or empty
+      this.pasteChip.style.display = 'none';
+    }
+  }
+
+  // ============ KEYBOARD DISMISS ON SCROLL ============
+  setupKeyboardDismiss() {
+    const terminalEl = document.getElementById('terminal');
+    if (!terminalEl) return;
+
+    // Find the xterm viewport
+    const viewport = terminalEl.querySelector('.xterm-viewport');
+    if (!viewport) {
+      // Retry after terminal is fully initialized
+      setTimeout(() => this.setupKeyboardDismiss(), 500);
+      return;
+    }
+
+    let lastScrollTop = viewport.scrollTop;
+    let scrollAccumulator = 0;
+
+    viewport.addEventListener('scroll', () => {
+      const delta = viewport.scrollTop - lastScrollTop;
+      lastScrollTop = viewport.scrollTop;
+
+      // Only track upward scroll (negative delta)
+      if (delta < 0) {
+        scrollAccumulator += Math.abs(delta);
+
+        // Dismiss keyboard after 50px of upward scroll
+        if (scrollAccumulator > 50) {
+          const composer = document.getElementById('input-composer');
+          if (document.activeElement === composer) {
+            composer.blur();
+            this.showStatus('Keyboard dismissed', 'info');
+          }
+          scrollAccumulator = 0;
+        }
+      } else {
+        // Reset accumulator on downward scroll
+        scrollAccumulator = 0;
+      }
+    }, { passive: true });
+  }
+
+  // ============ DRAFT PERSISTENCE ============
+  saveDraft() {
+    const composer = document.getElementById('input-composer');
+    if (!composer || !this.currentSession) return;
+
+    const draft = composer.value;
+    if (draft) {
+      localStorage.setItem(`claudepod_draft_${this.currentSession}`, draft);
+    } else {
+      localStorage.removeItem(`claudepod_draft_${this.currentSession}`);
+    }
+  }
+
+  loadDraft() {
+    const composer = document.getElementById('input-composer');
+    if (!composer || !this.currentSession) return;
+
+    const draft = localStorage.getItem(`claudepod_draft_${this.currentSession}`);
+    if (draft) {
+      composer.value = draft;
+      composer.dispatchEvent(new Event('input')); // Trigger auto-resize
+    }
+  }
+
+  clearDraft() {
+    if (this.currentSession) {
+      localStorage.removeItem(`claudepod_draft_${this.currentSession}`);
+    }
   }
 }
 
