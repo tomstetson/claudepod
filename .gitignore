@@ -30,9 +30,8 @@ temp/
 # Playwright MCP artifacts
 .playwright-mcp/
 
-# Internal project management files
+# Internal project management files (local only)
 WORKING_ON.md
 PROJECT_MAP.md
 RECENT_CHANGES.md
-docs/plans/
 CLAUDE.md
