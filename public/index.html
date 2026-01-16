@@ -44,6 +44,14 @@
     <!-- Terminal container -->
     <main class="terminal-container">
       <div id="terminal"></div>
+      <!-- History loading indicator -->
+      <div id="history-loading" class="history-loading" aria-hidden="true">
+        <span class="loading-spinner"></span> Loading history...
+      </div>
+      <!-- Buffer info indicator -->
+      <div id="scroll-indicator" class="scroll-indicator" aria-hidden="true"></div>
+      <!-- Menu overlay for tap-to-select (inside terminal for positioning) -->
+      <div id="menu-overlay" class="menu-overlay" aria-hidden="true"></div>
       <div id="status" class="status" role="status" aria-live="polite"></div>
 
       <!-- Scroll controls -->
@@ -53,32 +61,60 @@
       </div>
     </main>
 
-    <!-- Text input composer -->
-    <div class="input-bar">
-      <textarea
-        id="input-composer"
-        placeholder="Type a message..."
-        rows="1"
-        autocomplete="off"
-        autocorrect="on"
-        autocapitalize="sentences"
-        spellcheck="true"
-        enterkeyhint="send"
-      ></textarea>
-      <button id="send-btn" class="btn btn-primary" aria-label="Send">
-        <span class="send-icon">↑</span>
-      </button>
-    </div>
+    <!-- Mobile bottom controls -->
+    <footer class="mobile-controls">
+      <!-- Quick action row -->
+      <div class="quick-row">
+        <button class="quick-btn" data-input="y" aria-label="Send Y">Y</button>
+        <button class="quick-btn" data-input="n" aria-label="Send N">N</button>
+        <button class="quick-btn" data-key="Enter" aria-label="Send Enter">↵</button>
+        <button class="quick-btn" data-key="Escape" aria-label="Send Escape">Esc</button>
+        <button class="quick-btn" data-input="&#x03;" aria-label="Send Ctrl+C">^C</button>
+        <button id="palette-btn" class="quick-btn" aria-label="Menu">⋯</button>
+      </div>
 
-    <!-- Quick action buttons - mobile shows only 4 essential buttons -->
-    <footer class="quick-actions">
-      <button id="palette-btn" class="action-btn" aria-label="Menu">⋯</button>
+      <!-- D-pad + Input row -->
+      <div class="input-row">
+        <!-- D-pad -->
+        <div class="dpad">
+          <button class="dpad-btn dpad-up" data-arrow="up" aria-label="Arrow Up">↑</button>
+          <div class="dpad-middle">
+            <button class="dpad-btn dpad-left" data-arrow="left" aria-label="Arrow Left">←</button>
+            <button class="dpad-btn dpad-down" data-arrow="down" aria-label="Arrow Down">↓</button>
+            <button class="dpad-btn dpad-right" data-arrow="right" aria-label="Arrow Right">→</button>
+          </div>
+        </div>
+
+        <!-- Text input -->
+        <div class="input-composer-wrap">
+          <div id="paste-chip" class="paste-chip" style="display: none;">📋 Paste</div>
+          <textarea
+            id="input-composer"
+            placeholder="Type..."
+            rows="1"
+            autocomplete="off"
+            autocorrect="on"
+            autocapitalize="sentences"
+            spellcheck="true"
+            enterkeyhint="send"
+          ></textarea>
+        </div>
+
+        <!-- Send button -->
+        <button id="send-btn" class="btn btn-primary send-btn" aria-label="Send">
+          <span class="send-icon">↑</span>
+        </button>
+      </div>
+    </footer>
+
+    <!-- Desktop/tablet quick actions (hidden on mobile) -->
+    <footer class="quick-actions desktop-only">
       <button class="action-btn" data-input="y" aria-label="Send Y">Y</button>
       <button class="action-btn" data-input="n" aria-label="Send N">N</button>
       <button class="action-btn" data-key="Enter" aria-label="Send Enter">↵</button>
-      <button class="action-btn mobile-hide" data-key="Escape" aria-label="Send Escape">Esc</button>
-      <button class="action-btn mobile-hide" data-input="&#x03;" aria-label="Send Ctrl+C">^C</button>
-      <button id="kill-session-btn" class="action-btn mobile-hide danger" aria-label="End session">End</button>
+      <button class="action-btn" data-key="Escape" aria-label="Send Escape">Esc</button>
+      <button class="action-btn" data-input="&#x03;" aria-label="Send Ctrl+C">^C</button>
+      <button id="kill-session-btn" class="action-btn danger" aria-label="End session">End</button>
     </footer>
 
     <!-- Kill confirmation modal -->
@@ -150,6 +186,9 @@
   <script src="https://cdn.jsdelivr.net/npm/xterm-addon-web-links@0.9.0/lib/xterm-addon-web-links.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xterm-addon-search@0.13.0/lib/xterm-addon-search.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+  <script src="/lib/connection.js"></script>
+  <script src="/lib/scroll.js"></script>
+  <script src="/lib/performance.js"></script>
   <script src="/app.js"></script>
 </body>
 </html>

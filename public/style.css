@@ -293,25 +293,232 @@ body.scroll-locked {
   display: none;
 }
 
-/* ============ INPUT BAR - HIDDEN ON MOBILE ============ */
-.input-bar {
-  display: none;
-}
-
-/* ============ QUICK ACTIONS - MINIMAL 4 BUTTONS ============ */
-.quick-actions {
+/* ============ MOBILE CONTROLS - TOUCH FIRST ============ */
+.mobile-controls {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  padding-bottom: calc(10px + var(--safe-bottom));
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 12px;
+  padding-bottom: calc(8px + var(--safe-bottom));
   background: var(--bg-primary);
   border-top: 1px solid var(--border);
   flex-shrink: 0;
-  min-height: var(--footer-height);
 }
 
+/* Quick action row */
+.quick-row {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.quick-btn {
+  flex: 1;
+  max-width: 56px;
+  height: 36px;
+  padding: 0;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quick-btn:active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000;
+  transform: scale(0.95);
+}
+
+/* D-pad + Input row */
+.input-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+/* D-pad styling */
+.dpad {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.dpad-middle {
+  display: flex;
+  gap: 2px;
+}
+
+.dpad-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dpad-btn:active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000;
+  transform: scale(0.92);
+}
+
+/* Input composer wrapper */
+.input-composer-wrap {
+  flex: 1;
+  position: relative;
+  min-width: 0;
+}
+
+#input-composer {
+  width: 100%;
+  resize: none;
+  min-height: 40px;
+  max-height: 80px;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.4;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+#input-composer:focus {
+  border-color: var(--accent);
+}
+
+#input-composer::placeholder {
+  color: var(--text-muted);
+}
+
+/* Paste chip */
+.paste-chip {
+  position: absolute;
+  top: -28px;
+  right: 0;
+  padding: 4px 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.paste-chip:active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000;
+}
+
+/* Send button */
+.send-btn {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  flex-shrink: 0;
+  font-size: 18px;
+  border-radius: 8px;
+}
+
+/* Desktop quick actions - hidden on mobile */
+.quick-actions.desktop-only {
+  display: none;
+}
+
+/* ============ MENU OVERLAY - TAP TO SELECT ============ */
+.menu-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.menu-overlay.active {
+  pointer-events: auto;
+}
+
+.menu-option {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 4px 8px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.menu-option:active {
+  background: var(--accent);
+}
+
+.menu-option-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.menu-option:active .menu-option-label {
+  color: #000;
+}
+
+/* Code block copy button */
+.code-copy-btn {
+  position: absolute;
+  padding: 4px 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  z-index: 50;
+}
+
+.code-copy-btn:active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000;
+}
+
+/* ============ LEGACY QUICK ACTIONS (TABLET/DESKTOP) ============ */
 .action-btn {
   flex: 1;
   max-width: 72px;
@@ -347,11 +554,6 @@ body.scroll-locked {
   background: var(--error);
   border-color: var(--error);
   color: #fff;
-}
-
-/* Hide extra buttons on mobile - show only essential 4 */
-.action-btn.mobile-hide {
-  display: none;
 }
 
 /* ============ MODAL ============ */
@@ -723,6 +925,17 @@ body.scroll-locked {
   -webkit-overflow-scrolling: touch;
   max-height: 100% !important;
   touch-action: pan-y;
+  /* Smooth scrolling for programmatic scrolls */
+  scroll-behavior: smooth;
+  /* Prevent rubber-banding at edges */
+  overscroll-behavior: contain;
+  /* Faster scroll response */
+  will-change: scroll-position;
+}
+
+/* Disable smooth scroll during user interaction for better responsiveness */
+.xterm-viewport:active {
+  scroll-behavior: auto;
 }
 
 .xterm-screen {
@@ -741,6 +954,61 @@ body.scroll-locked {
 .xterm-viewport::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 2px;
+}
+
+/* History loading indicator */
+.history-loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 8px;
+  background: linear-gradient(to bottom, var(--bg-void) 0%, transparent 100%);
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.history-loading.visible {
+  opacity: 1;
+}
+
+/* Scroll position indicator */
+.scroll-indicator {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.scroll-indicator.visible {
+  opacity: 1;
+}
+
+/* Loading spinner for history */
+.loading-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--text-muted);
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
 }
 
 /* ============ KEYBOARD VISIBLE ============ */
@@ -891,54 +1159,22 @@ body.keyboard-visible .quick-actions {
     color: #000;
   }
 
-  /* Show input bar on tablet */
-  .input-bar {
+  /* Hide mobile controls on tablet/desktop */
+  .mobile-controls {
+    display: none;
+  }
+
+  /* Show desktop quick actions on tablet */
+  .quick-actions.desktop-only {
     display: flex;
-    gap: 8px;
-    padding: 8px 16px;
-    background: var(--bg-primary);
-    border-top: 1px solid var(--border);
-    flex-shrink: 0;
-  }
-
-  #input-composer {
-    flex: 1;
-    resize: none;
-    min-height: 40px;
-    max-height: 100px;
-    padding: 10px 12px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--text-primary);
-    font-family: inherit;
-    font-size: 14px;
-    line-height: 1.4;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-
-  #input-composer:focus {
-    border-color: var(--accent);
-  }
-
-  #input-composer::placeholder {
-    color: var(--text-muted);
-  }
-
-  #send-btn {
-    width: 40px;
-    height: 40px;
-    padding: 0;
-    flex-shrink: 0;
-    font-size: 16px;
-  }
-
-  /* Show all quick action buttons on tablet */
-  .quick-actions {
+    justify-content: center;
+    align-items: center;
     gap: 8px;
     padding: 12px 16px;
     padding-bottom: calc(12px + var(--safe-bottom));
+    background: var(--bg-primary);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
   }
 
   .action-btn {
@@ -948,10 +1184,6 @@ body.keyboard-visible .quick-actions {
     padding: 0 14px;
     font-size: 13px;
     flex: 0 0 auto;
-  }
-
-  .action-btn.mobile-hide {
-    display: flex;
   }
 
   #terminal {
