@@ -998,6 +998,19 @@ body.scroll-locked {
   opacity: 1;
 }
 
+/* Loading spinner for history */
+.loading-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--text-muted);
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
 /* ============ KEYBOARD VISIBLE ============ */
 body.keyboard-visible .quick-actions {
   padding-bottom: 10px;

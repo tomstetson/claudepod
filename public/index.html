@@ -44,6 +44,12 @@
     <!-- Terminal container -->
     <main class="terminal-container">
       <div id="terminal"></div>
+      <!-- History loading indicator -->
+      <div id="history-loading" class="history-loading" aria-hidden="true">
+        <span class="loading-spinner"></span> Loading history...
+      </div>
+      <!-- Buffer info indicator -->
+      <div id="scroll-indicator" class="scroll-indicator" aria-hidden="true"></div>
       <!-- Menu overlay for tap-to-select (inside terminal for positioning) -->
       <div id="menu-overlay" class="menu-overlay" aria-hidden="true"></div>
       <div id="status" class="status" role="status" aria-live="polite"></div>

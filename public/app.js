@@ -414,8 +414,24 @@ class ClaudePod {
 
     this.connection.on('error', (data) => {
       console.error('Connection error:', data);
+
+      // User-friendly error messages
+      let message = data.message || 'Connection error';
+
+      if (message.includes('not found')) {
+        message = 'Session not found - it may have ended';
+      } else if (message.includes('Failed to attach')) {
+        message = 'Could not attach to session - try refreshing';
+      } else if (message.includes('WebSocket')) {
+        message = 'Connection lost - attempting to reconnect...';
+      }
+
       if (!data.recoverable) {
-        this.showStatus(data.message || 'Connection error', 'error');
+        this.showStatus(message, 'error');
+        // Offer to refresh sessions after non-recoverable error
+        setTimeout(() => this.loadSessions(), 2000);
+      } else {
+        this.showStatus(message, 'warning');
       }
     });
 
@@ -431,7 +447,7 @@ class ClaudePod {
 
     // State sync on initial connect or reconnect
     this.connection.on('state_sync', (msg) => {
-      console.log('State sync received:', msg.bufferState);
+      console.log('State sync received:', msg.bufferState, 'restored:', msg.restored);
       this.bufferState = msg.bufferState;
 
       // Update scroll controller with buffer state
@@ -446,6 +462,11 @@ class ClaudePod {
         const content = msg.lines.join('\n');
         if (content) {
           this.terminal.write(content + '\n');
+        }
+
+        // Show message if history was restored from disk
+        if (msg.restored) {
+          this.showStatus(`Restored ${msg.lines.length} lines of history`, 'success');
         }
       }
 
@@ -475,6 +496,9 @@ class ClaudePod {
   }
 
   setupScroll() {
+    const historyLoadingEl = document.getElementById('history-loading');
+    const scrollIndicatorEl = document.getElementById('scroll-indicator');
+
     this.scrollController = new ScrollController({
       terminal: this.terminal,
       connection: this.connection,
@@ -482,17 +506,63 @@ class ClaudePod {
       fetchCount: 500,
       onHistoryLoad: (event) => {
         if (event.loading) {
-          this.showStatus('Loading history...', 'info');
-        } else if (event.loaded) {
-          this.showStatus(`Loaded ${event.count} lines of history`, 'success');
+          // Show loading indicator
+          historyLoadingEl?.classList.add('visible');
+        } else {
+          // Hide loading indicator
+          historyLoadingEl?.classList.remove('visible');
+
+          if (event.loaded) {
+            this.showStatus(`Loaded ${event.count} lines of history`, 'success');
+          }
         }
       }
     });
 
     // Initialize after a short delay to ensure terminal is ready
     setTimeout(() => {
-      this.scrollController.init();
+      if (this.scrollController.init()) {
+        // Set up scroll position indicator
+        this.setupScrollIndicator(scrollIndicatorEl);
+      }
     }, 100);
+  }
+
+  setupScrollIndicator(indicatorEl) {
+    if (!indicatorEl || !this.scrollController) return;
+
+    const viewport = this.terminal?.element?.querySelector('.xterm-viewport');
+    if (!viewport) return;
+
+    let indicatorTimeout = null;
+
+    viewport.addEventListener('scroll', () => {
+      // Show indicator
+      const info = this.scrollController.getScrollInfo();
+      if (info && info.bufferState) {
+        const { bufferState, loadedRange, atTop, atBottom } = info;
+        const totalLines = bufferState.newestLine - bufferState.oldestLine + 1;
+        const loadedLines = loadedRange.end - loadedRange.start + 1;
+
+        let text = '';
+        if (atTop && this.scrollController.hasMoreHistory()) {
+          text = `↑ ${loadedRange.start - bufferState.oldestLine} more lines`;
+        } else if (atBottom) {
+          text = 'At latest';
+        } else {
+          text = `${loadedLines} of ${totalLines} lines`;
+        }
+
+        indicatorEl.textContent = text;
+        indicatorEl.classList.add('visible');
+
+        // Hide after 2 seconds of no scroll
+        clearTimeout(indicatorTimeout);
+        indicatorTimeout = setTimeout(() => {
+          indicatorEl.classList.remove('visible');
+        }, 2000);
+      }
+    }, { passive: true });
   }
 
   setupPerformanceMonitor() {
@@ -1908,12 +1978,22 @@ class ClaudePod {
 
   setupOfflineDetection() {
     const banner = document.getElementById('offline-banner');
+    let offlineSince = null;
 
     const updateOnlineStatus = () => {
       if (navigator.onLine) {
         banner.classList.remove('visible');
+
+        // Calculate offline duration
+        if (offlineSince) {
+          const offlineDuration = Date.now() - offlineSince;
+          const seconds = Math.round(offlineDuration / 1000);
+          console.log(`Back online after ${seconds}s offline`);
+          offlineSince = null;
+        }
       } else {
         banner.classList.add('visible');
+        offlineSince = Date.now();
       }
     };
 
@@ -1922,16 +2002,25 @@ class ClaudePod {
     updateOnlineStatus();
 
     // Smart reconnection on network restore
-    // Note: ConnectionManager handles this automatically, but we show a status message
     window.addEventListener('online', () => {
-      if (this.currentSession && this.connection && !this.connection.isConnected()) {
-        this.showStatus('Back online, reconnecting...', 'info');
-        // ConnectionManager will handle reconnection automatically
+      if (this.currentSession && this.connection) {
+        if (!this.connection.isConnected()) {
+          this.showStatus('Back online, reconnecting...', 'info');
+          // ConnectionManager will handle reconnection automatically
+        } else {
+          this.showStatus('Connection restored', 'success');
+        }
+      } else {
+        this.showStatus('Back online', 'success');
       }
+
+      // Refresh session list in case sessions changed while offline
+      setTimeout(() => this.loadSessions(), 1000);
     });
 
     window.addEventListener('offline', () => {
-      this.showStatus('You are offline', 'warning');
+      this.showStatus('You are offline - input will be queued', 'warning');
+      this.setConnectionStatus('disconnected');
     });
   }
 

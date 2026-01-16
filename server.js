@@ -54,6 +54,28 @@ function getSessionBuffer(sessionName) {
   return sessionBuffers.get(sessionName);
 }
 
+// Restore buffer from disk (for recovery after server restart)
+async function restoreBufferFromDisk(sessionName) {
+  const buffer = getSessionBuffer(sessionName);
+
+  // Only restore if buffer is empty (fresh after restart)
+  if (buffer.getState().lineCount > 0) {
+    return buffer;
+  }
+
+  try {
+    const diskContent = await sessionStore.readBuffer(sessionName);
+    if (diskContent) {
+      buffer.write(diskContent);
+      console.log(`Restored ${buffer.getState().lineCount} lines from disk for ${sessionName}`);
+    }
+  } catch (err) {
+    console.error(`Failed to restore buffer for ${sessionName}:`, err.message);
+  }
+
+  return buffer;
+}
+
 // Broadcast message to all clients connected to a session
 function broadcastToSession(sessionName, message, excludeWs = null) {
   const clients = activeSessions.get(sessionName);
@@ -77,12 +99,19 @@ app.get('/api/sessions', (req, res) => {
     const tmuxSessions = tmux.listSessions();
     const meta = sessions.getAllMeta();
 
-    // Enrich sessions with labels and notification settings
-    const enriched = tmuxSessions.map(s => ({
-      ...s,
-      label: meta[s.name]?.label || null,
-      notifications: meta[s.name]?.notifications !== false
-    }));
+    // Enrich sessions with labels, notification settings, and buffer info
+    const enriched = tmuxSessions.map(s => {
+      const buffer = sessionBuffers.get(s.name);
+      const bufferState = buffer ? buffer.getState() : null;
+
+      return {
+        ...s,
+        label: meta[s.name]?.label || null,
+        notifications: meta[s.name]?.notifications !== false,
+        bufferLines: bufferState?.lineCount || 0,
+        hasHistory: bufferState?.lineCount > 0
+      };
+    });
 
     // Cleanup stale metadata
     sessions.cleanup(tmuxSessions);
@@ -92,6 +121,47 @@ app.get('/api/sessions', (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// API: Get buffer stats for a session
+app.get('/api/sessions/:name/buffer', async (req, res) => {
+  try {
+    const { name } = req.params;
+
+    // Validate session name
+    if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
+      return res.status(400).json({ error: 'Invalid session name' });
+    }
+
+    const buffer = sessionBuffers.get(name);
+    const bufferState = buffer ? buffer.getState() : null;
+    const diskSize = await sessionStore.getBufferSize(name);
+
+    res.json({
+      name,
+      memory: bufferState ? {
+        lineCount: bufferState.lineCount,
+        oldestLine: bufferState.oldestLine,
+        newestLine: bufferState.newestLine,
+        memoryUsage: buffer.getMemoryUsage()
+      } : null,
+      disk: {
+        size: diskSize,
+        sizeFormatted: formatBytes(diskSize)
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Helper function to format bytes
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
 
 // API: Set session label
 app.put('/api/sessions/:name/label', (req, res) => {
@@ -343,19 +413,36 @@ wss.on('connection', (ws, req) => {
     return;
   }
 
-  // Get or create session buffer
+  // Get or create session buffer (restore from disk if needed after server restart)
   const buffer = getSessionBuffer(sessionName);
 
-  // Send initial state sync with buffer info and recent content
-  const bufferState = buffer.getState();
-  const recentContent = buffer.getTail(500); // Send last 500 lines on connect
+  // Try to restore from disk in the background
+  restoreBufferFromDisk(sessionName).then(() => {
+    // Send initial state sync with buffer info and recent content
+    const bufferState = buffer.getState();
+    const recentContent = buffer.getTail(500); // Send last 500 lines on connect
 
-  ws.send(JSON.stringify({
-    type: 'state_sync',
-    bufferState,
-    lines: recentContent.lines,
-    startLine: recentContent.startLine
-  }));
+    if (ws.readyState === ws.OPEN) {
+      ws.send(JSON.stringify({
+        type: 'state_sync',
+        bufferState,
+        lines: recentContent.lines,
+        startLine: recentContent.startLine,
+        restored: bufferState.lineCount > 0
+      }));
+    }
+  }).catch(err => {
+    console.error(`Buffer restore failed for ${sessionName}:`, err.message);
+    // Still send state sync even if restore failed
+    if (ws.readyState === ws.OPEN) {
+      ws.send(JSON.stringify({
+        type: 'state_sync',
+        bufferState: buffer.getState(),
+        lines: [],
+        startLine: 0
+      }));
+    }
+  });
 
   // Buffer for prompt detection
   let outputBuffer = '';
